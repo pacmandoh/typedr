@@ -130,9 +130,15 @@
 
     # Recursively rewrite `?` calls inside function body to declare or help
     .modify_qm_calls <- function(x) {
-      if (!is_call(x) || !is_call(x, "?")) {
+      if (!is_call(x)) {
         return(x)
       }
+
+      if (!is_call(x, "?")) {
+        x[] <- lapply(x, .modify_qm_calls)
+        return(x)
+      }
+
       n <- length(x)
       if (n == 2) {
         rhs_i <- x[[2]]
