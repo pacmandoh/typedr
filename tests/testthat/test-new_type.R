@@ -121,3 +121,26 @@ test_that("get_assertion returns the active binding assertion call", {
   expect_error(get_assertion(typed_for_assertion_lookup), NA)
   expect_identical(get_assertion(typed_for_assertion_lookup), expr(Integer()))
 })
+
+test_that("get_assertion tolerates instrumented active binding bodies", {
+  instrumented_env <- new.env(parent = emptyenv())
+  instrumented_fun <- local({
+    val <- NULL
+    function(assigned_value) {
+      covr_count()
+      if (!missing(assigned_value)) {
+        covr_count()
+        tmp <- tryCatch(Integer()(assigned_value), error = identity)
+        val <<- tmp
+      }
+      val
+    }
+  })
+  makeActiveBinding("instrumented_binding", instrumented_fun, instrumented_env)
+
+  instrumented_env$get_assertion_ <- get_assertion
+  expect_identical(
+    with(instrumented_env, get_assertion_(instrumented_binding)),
+    expr(Integer())
+  )
+})

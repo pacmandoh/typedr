@@ -176,11 +176,31 @@ infer_implicit_assignment_call <- function(value) {
 
 get_assertion <- function(x) {
   x <- as.character(substitute(x))
-  try_fetch(
-    {
-      fun <- activeBindingFunction(x, parent.frame())
-      body(fun)[[c(2, 3, 2, 3, 2, 1)]]
-    },
+  find_assertion_call <- function(node) {
+    if (!is.call(node)) {
+      return(NULL)
+    }
+
+    if (
+      length(node) >= 2 &&
+        is.call(node[[1]]) &&
+        any(vapply(as.list(node)[-1], identical, logical(1), quote(assigned_value)))
+    ) {
+      return(node[[1]])
+    }
+
+    for (child in as.list(node)) {
+      found <- find_assertion_call(child)
+      if (!is_null(found)) {
+        return(found)
+      }
+    }
+
+    NULL
+  }
+
+  assertion <- try_fetch(
+    find_assertion_call(body(activeBindingFunction(x, parent.frame()))),
     error = function(e) {
       cli_abort(
         "Can't retrieve assertion for `{.field {x}}`.",
@@ -189,4 +209,14 @@ get_assertion <- function(x) {
       )
     }
   )
+
+  if (is_null(assertion)) {
+    cli_abort(
+      "Can't retrieve assertion for `{.field {x}}`.",
+      i = "The active binding body does not contain a typedr assertion call.",
+      class = c("typedr_get_assertion_error", "typedr_error")
+    )
+  }
+
+  assertion
 }

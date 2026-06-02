@@ -239,8 +239,9 @@ pretty_fn <- function(
       msg = c(
         "!" = "{.pkg prettycode} is not installed, using basic {.pkg typedr} syntax highlighting.",
         "i" = "Install it with {.code install.packages('prettycode')} for fuller R syntax highlighting.",
-        "{col_grey('This warning is displayed once per session.')}"
-      )
+        "{col_grey('This message is displayed once per session.')}"
+      ),
+      type = "tips"
     )
   }
 
