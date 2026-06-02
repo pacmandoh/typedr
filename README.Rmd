@@ -25,12 +25,13 @@ knitr::opts_chunk$set(
 moodymudskipper. It keeps the same core idea: make lightweight runtime type
 constraints feel native in R code.
 
-It has 3 main features:
+It has several main features:
 
 * set variable types in a script or the body of a function, so they can't be
   assigned illegal values
 * set argument types in a function definition
 * set return type of a function
+* combine and condition function argument types using compact typedr syntax
 
 The user can define their own types, or leverage assertions from other packages.
 
@@ -149,6 +150,25 @@ the main ones are:
 * `Date`
 * `Time` (POSIXct)
 
+Assertions can be combined with `|` and `&`.
+
+```{r}
+Number <- Integer() | Double()
+Number(1L)
+Number(1)
+Number("a")
+
+PositiveInteger <- Integer() & Any(... = ~ . > 0L)
+PositiveInteger(1L)
+PositiveInteger(0L)
+```
+
+The `|` operator is a union: a value is accepted if any assertion accepts it.
+The `&` operator is an intersection: every assertion must accept the value, in
+order. For compatibility with R's usual combining idiom, `c(Integer(), Double())`
+is also accepted and means the same as `Integer() | Double()`. The `|`
+notation is usually clearer in function signatures.
+
 ### Advanced type restriction using arguments
 
 As we've seen with `Integer(3)`, passing arguments to a
@@ -247,6 +267,75 @@ add
 
 We see that it is translated into a `check_arg` call containing a `.bind = TRUE`
 argument.
+
+### Combine and link argument types
+
+Union and intersection types can be used directly in function signatures.
+
+```{r}
+as_number <- ? function(x = ? Integer() | Double()) {
+  x
+}
+
+as_number(1L)
+as_number(1)
+as_number("a")
+```
+
+Arguments can also depend on other arguments. Use a two-sided formula after
+`?`: the left side is a guard, and the right side is the assertion that applies
+to the current argument when the guard matches.
+
+```{r}
+scale_value <- ? function(
+  x = ? Integer() | Character(),
+  scale = ? x:Integer() ~ Double()
+) {
+  TRUE
+}
+
+scale_value(1L, 2)
+scale_value(1L, 2L)
+scale_value("a", "scale is ignored")
+```
+
+Guards use `arg:Type()` and can be combined with `|`, `&`, parentheses, and `!`.
+
+```{r}
+dependent <- ? function(
+  a1 = ? Any(),
+  a2 = ? Any(),
+  out = ? a1:Integer() | a2:Character() ~ Double()
+) {
+  TRUE
+}
+
+dependent(1L, FALSE, 1)
+dependent(FALSE, "x", 1L)
+```
+
+By default, a guard that does not match simply leaves the dependent argument
+alone. Add `/ Warning()` or `/ Error()` to report when the dependent argument is
+supplied but inactive.
+
+```{r}
+optional_scale <- ? function(
+  x = NULL ? (Null() | Integer()),
+  scale = ? !x:Missing() ~ Double() / Warning()
+) {
+  TRUE
+}
+
+optional_scale()
+optional_scale(x = NULL, scale = 2)
+optional_scale(x = 1L, scale = 2)
+optional_scale(x = 1L, scale = 2L)
+```
+
+`Missing()` is a guard-only helper: it matches when the argument was not supplied
+or when its value is `NULL`. It is intentionally not a standalone exported type.
+`Warning(Type())` can also be used on the right side to warn rather than error
+when the guard matches but the dependent type check fails.
 
 ## Set a function's return type
 

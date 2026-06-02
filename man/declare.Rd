@@ -91,6 +91,26 @@ The special assertion factory \code{Dots()} can also be used. In that case the
 checks apply to \code{list(...)} rather than to each element individually. For
 instance, \verb{function(... = ? Dots(2))} makes sure that \code{...} receives 2 values.
 
+Assertion unions and intersections can be written inline, for example
+\code{arg = ? Integer() | Double()} or
+\code{arg = ? Integer() & Any(... = ~ . > 0L)}.
+
+Arguments can depend on other arguments using a two-sided formula:
+\code{arg = ? other:Type() ~ Assertion()}. The left side is a guard; the right
+side is the assertion applied to \code{arg} when the guard matches. Guards can use
+\code{|}, \code{&}, parentheses, and \code{!}, for example
+\code{arg = ? a1:Integer() | a2:Character() ~ Double()}.
+
+When a guard does not match, the dependent assertion is ignored by default.
+Add \verb{/ Warning()} or \verb{/ Error()} to report when the current argument was
+supplied but is inactive, for example
+\code{arg = ? !other:Missing() ~ Double() / Warning()}. In guards, \code{Missing()}
+matches when the referenced argument was not supplied or is \code{NULL}.
+
+When a guard matches but the dependent assertion fails, typedr errors by
+default. Use \code{Warning(Assertion())} on the right side to warn instead, for
+example \code{arg = ? other:Integer() ~ Warning(Double())}.
+
 The returned function will have its body modified so the arguments are
 checked by \code{check_arg()} calls at the top. Printing the function will display
 the argument types.

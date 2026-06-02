@@ -3,11 +3,20 @@
 \name{check_output}
 \alias{check_output}
 \alias{check_arg}
+\alias{check_dependent_arg}
 \title{Check Argument Types and Return Type}
 \usage{
 check_output(.output, .assertion, ..., .assertion_expr = NULL)
 
 check_arg(.arg, .assertion, ..., .bind = FALSE)
+
+check_dependent_arg(
+  .arg,
+  .guard,
+  .assertion,
+  .severity = c("error", "warning"),
+  .inactive = c("ignore", "warning", "error")
+)
 }
 \arguments{
 \item{.output}{Function output to check.}
@@ -23,6 +32,13 @@ supplied by typedr-generated code.}
 
 \item{.bind}{Whether to actively bind the argument so later assignments must
 also satisfy the assertion.}
+
+\item{.guard}{Guard expression used to decide whether \code{.assertion} applies.}
+
+\item{.severity}{Whether a guarded assertion failure should error or warn.}
+
+\item{.inactive}{Whether a supplied argument should be ignored, warned, or
+rejected when \code{.guard} does not match.}
 }
 \value{
 \code{check_output()} returns \code{.output} if it satisfies the assertion and
@@ -36,7 +52,8 @@ called directly. Prefer the syntaxes described in \code{?declare}. \code{check_a
 checks that an argument satisfies an assertion and can turn it into an active
 binding so later assignments are checked as well. \code{check_output()} checks that
 a value, usually a return value, satisfies an assertion.
-
+}
+\details{
 typedr reports failures with cli messages and structured rlang-compatible
 condition classes such as \code{typedr_type_error}, \code{typedr_assign_error}, and
 \code{typedr_return_error}. These classes make errors easier to test, catch, and

@@ -87,6 +87,46 @@ function.
 Note that you're free to use these functions directly in your code if you don't
 like the `?` syntax.
 
+## Combine and depend on argument types
+
+Function arguments can use combined assertions. `|` means any assertion may
+accept the value, and `&` means all assertions must accept it.
+
+```{r}
+normalize_id <- ? function(id = ? Integer() | Character()) {
+  as.character(id)
+}
+
+normalize_id(1L)
+normalize_id("A-1")
+normalize_id(TRUE)
+```
+
+Arguments can also depend on other arguments. A dependent argument annotation
+uses `guard ~ assertion`: the guard is evaluated against already-bound
+arguments, and the assertion is applied to the current argument only when the
+guard matches.
+
+```{r}
+configure <- ? function(
+  method = NULL ? (Null() | Character()),
+  tolerance = ? !method:Missing() ~ Double() / Warning()
+) {
+  TRUE
+}
+
+configure()
+configure(method = NULL, tolerance = 0.1)
+configure(method = "fast", tolerance = 0.1)
+configure(method = "fast", tolerance = 1L)
+```
+
+In guards, `Missing()` matches when the referenced argument was not supplied or
+is `NULL`. The `/ Warning()` suffix reports when the dependent argument is
+supplied but inactive; `/ Error()` rejects that case. Guards can combine several
+arguments with `|`, `&`, parentheses, and `!`, such as
+`a1:Integer() | a2:Character() ~ Double()`.
+
 ## Define your own types from existing types
 
 A way to define custom types is to wrap existing ones and add constraints

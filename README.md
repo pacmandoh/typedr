@@ -13,12 +13,14 @@ coverage](https://codecov.io/gh/pacmandoh/typedr/branch/main/graph/badge.svg)](h
 created by moodymudskipper. It keeps the same core idea: make
 lightweight runtime type constraints feel native in R code.
 
-It has 3 main features:
+It has several main features:
 
 - set variable types in a script or the body of a function, so they
   can’t be assigned illegal values
 - set argument types in a function definition
 - set return type of a function
+- combine and condition function argument types using compact typedr
+  syntax
 
 The user can define their own types, or leverage assertions from other
 packages.
@@ -32,8 +34,9 @@ developer experience:
 
 - expression handling, environments, and condition plumbing have been
   migrated toward *{rlang}*
-- errors are emitted through *{cli}* with typed condition classes such as
-  `typedr_type_error`, `typedr_assign_error`, and `typedr_return_error`
+- errors are emitted through *{cli}* with typed condition classes such
+  as `typedr_type_error`, `typedr_assign_error`, and
+  `typedr_return_error`
 - printed output for typed functions, assertion factories, assertions,
   and typed values is structured, color-aware, and easier to inspect
 - helper printers such as `print_typedr()`, `print_all_args()`,
@@ -167,6 +170,35 @@ The package contains many assertion factories (see
 - `Date`
 - `Time` (POSIXct)
 
+Assertions can be combined with `|` and `&`.
+
+``` r
+Number <- Integer() | Double()
+Number(1L)
+#> [1] 1
+Number(1)
+#> [1] 1
+Number("a")
+#> Error in `Number()`:
+#> ! Value does not satisfy any allowed <Type()>.
+#> ✖ Expected one of: Integer() | Double().
+
+PositiveInteger <- Integer() & Any(... = ~ . > 0L)
+PositiveInteger(1L)
+#> [1] 1
+PositiveInteger(0L)
+#> Error in `PositiveInteger()`:
+#> ! Value does not satisfy all required <Type()> constraints.
+#> ✖ Failed constraint: Any(... = ~ . > 0L).
+```
+
+The `|` operator is a union: a value is accepted if any assertion
+accepts it. The `&` operator is an intersection: every assertion must
+accept the value, in order. For compatibility with R’s usual combining
+idiom, `c(Integer(), Double())` is also accepted and means the same as
+`Integer() | Double()`. The `|` notation is usually clearer in function
+signatures.
+
 ### Advanced type restriction using arguments
 
 As we’ve seen with `Integer(3)`, passing arguments to a assertion
@@ -270,10 +302,10 @@ body
 ``` r
 add
 #> <typedr function>
-#> Warning: ! prettycode is not installed, using basic typedr syntax highlighting.
-#> ℹ Install it with `install.packages('prettycode')` for fuller R syntax
-#>   highlighting.
-#> This warning is displayed once per session.
+#> prettycode is not installed, using basic typedr syntax highlighting.
+#> Install it with `install.packages('prettycode')` for fuller R syntax
+#> highlighting.
+#> This message is displayed once per session.
 #> function (x, y = 1) 
 #> {
 #>   check_arg(x, Double())
@@ -283,7 +315,7 @@ add
 #> Return: <Any()>
 #> Arguments:
 #> • `x`: <Double()>
-#> • `y`: <Double()> → default: 1
+#> • `y`: <Double()> -> default: 1
 ```
 
 Let’s test it by providing a right and wrong type.
@@ -319,11 +351,117 @@ add
 #> Return: <Any()>
 #> Arguments:
 #> • `x`: <Double()>
-#> • `y`: <Double()> → default: 1
+#> • `y`: <Double()> -> default: 1
 ```
 
 We see that it is translated into a `check_arg` call containing a
 `.bind = TRUE` argument.
+
+### Combine and link argument types
+
+Union and intersection types can be used directly in function
+signatures.
+
+``` r
+as_number <- ? function(x = ? Integer() | Double()) {
+  x
+}
+
+as_number(1L)
+#> [1] 1
+as_number(1)
+#> [1] 1
+as_number("a")
+#> Error in `as_number()`:
+#> ! Invalid <Type()> of `x` to `as_number()`.
+#> Caused by error in `Integer() | Double()`:
+#> ! Value does not satisfy any allowed <Type()>.
+#> ✖ Expected one of: Integer() | Double().
+```
+
+Arguments can also depend on other arguments. Use a two-sided formula
+after `?`: the left side is a guard, and the right side is the assertion
+that applies to the current argument when the guard matches.
+
+``` r
+scale_value <- ? function(
+  x = ? Integer() | Character(),
+  scale = ? x:Integer() ~ Double()
+) {
+  TRUE
+}
+
+scale_value(1L, 2)
+#> [1] TRUE
+scale_value(1L, 2L)
+#> Error in `scale_value()`:
+#> ! Invalid dependent <Type()> of `scale`.
+#> ℹ Guard `x:Integer()` matched, so `scale` must satisfy <Double()>.
+#> Caused by error in `Double()`:
+#> ! type mismatch
+#> ✖ `typeof(value)`: "integer" `expected`: "double"
+scale_value("a", "scale is ignored")
+#> [1] TRUE
+```
+
+Guards use `arg:Type()` and can be combined with `|`, `&`, parentheses,
+and `!`.
+
+``` r
+dependent <- ? function(
+  a1 = ? Any(),
+  a2 = ? Any(),
+  out = ? a1:Integer() | a2:Character() ~ Double()
+) {
+  TRUE
+}
+
+dependent(1L, FALSE, 1)
+#> [1] TRUE
+dependent(FALSE, "x", 1L)
+#> Error in `dependent()`:
+#> ! Invalid dependent <Type()> of `out`.
+#> ℹ Guard `a1:Integer() | a2:Character()` matched, so `out` must satisfy
+#>   <Double()>.
+#> Caused by error in `Double()`:
+#> ! type mismatch
+#> ✖ `typeof(value)`: "integer" `expected`: "double"
+```
+
+By default, a guard that does not match simply leaves the dependent
+argument alone. Add `/ Warning()` or `/ Error()` to report when the
+dependent argument is supplied but inactive.
+
+``` r
+optional_scale <- ? function(
+  x = NULL ? (Null() | Integer()),
+  scale = ? !x:Missing() ~ Double() / Warning()
+) {
+  TRUE
+}
+
+optional_scale()
+#> [1] TRUE
+optional_scale(x = NULL, scale = 2)
+#> Warning: Argument `scale` is inactive.
+#> ℹ Guard `!x:Missing()` did not match, so `scale` will not take effect.
+#> [1] TRUE
+optional_scale(x = 1L, scale = 2)
+#> [1] TRUE
+optional_scale(x = 1L, scale = 2L)
+#> Error in `optional_scale()`:
+#> ! Invalid dependent <Type()> of `scale`.
+#> ℹ Guard `!x:Missing()` matched, so `scale` must satisfy <Double()>.
+#> Caused by error in `Double()`:
+#> ! type mismatch
+#> ✖ `typeof(value)`: "integer" `expected`: "double"
+```
+
+`Missing()` is a guard-only helper: it matches when the argument was not
+supplied or when its value is `NULL`. It is intentionally not a
+standalone exported type. `Warning(Type())` can also be used on the
+right side to warn rather than error when the guard matches but the
+dependent type check fails.
 
 ## Set a function’s return type
 
@@ -360,15 +498,15 @@ you’re browsing the pkgdown website.
 [*{typed}*](https://github.com/moodymudskipper/typed). The original
 package established the public syntax and the central model used here:
 `?` for declaring typed variables, typed function arguments, and typed
-return values; assertion factories such as `Integer()` and `Character()`;
-and active bindings for runtime assignment checks.
+return values; assertion factories such as `Integer()` and
+`Character()`; and active bindings for runtime assignment checks.
 
 The goal of *{typedr}* is not to erase that lineage. It is to carry the
 same idea forward with a codebase that leans on the modern tidyverse
 infrastructure available today, especially *{rlang}* and *{cli}*. Many
 concepts, examples, and interfaces will therefore feel familiar to users
-of *{typed}*, while error objects and print output are intentionally more
-structured in *{typedr}*.
+of *{typed}*, while error objects and print output are intentionally
+more structured in *{typedr}*.
 
 ## Acknowledgements
 
