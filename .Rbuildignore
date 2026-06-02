@@ -14,3 +14,6 @@
 ^dev$
 ^doc$
 ^Meta$
+^[.]?air[.]toml$
+^\.vscode$
+^LICENSE\.md$

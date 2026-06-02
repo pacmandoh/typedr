@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "pacmandoh@outlook.com")
 Description: A modernized refactor of the 'typed' package for R. It supports setting variable types in a script or function body, argument types in function definitions, and return types for functions. Compared with the original implementation, typedr uses 'rlang' and 'cli' for expression handling, active bindings, structured error conditions, and richer printing.
-License: GPL-3
+License: GPL (>= 3)
 Encoding: UTF-8
 Language: en
 LazyData: true
