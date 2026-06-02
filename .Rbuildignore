@@ -1,0 +1,16 @@
+^renv$
+^renv\.lock$
+^typedr\.Rproj$
+^\.Rproj\.user$
+^\.lintr$
+^README\.Rmd$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^cran-comments\.md$
+^CRAN-RELEASE$
+^\.github$
+^dev$
+^doc$
+^Meta$

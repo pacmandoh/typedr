@@ -1,0 +1,44 @@
+Package: typedr
+Title: Support Types for Variables, Arguments, and Return Values
+Version: 0.1.0
+Authors@R: 
+    person(given = "Pacman",
+           family = "Doh",
+           role = c("aut", "cre"),
+           email = "pacmandoh@outlook.com")
+Description: A modernized refactor of the 'typed' package for R. It supports setting variable types in a script or function body, argument types in function definitions, and return types for functions. Compared with the original implementation, typedr uses 'rlang' and 'cli' for expression handling, active bindings, structured error conditions, and richer printing.
+License: GPL-3
+Encoding: UTF-8
+Language: en
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+URL: https://github.com/pacmandoh/typedr, https://pacmandoh.github.io/typedr/
+BugReports: https://github.com/pacmandoh/typedr/issues
+Imports: 
+    rlang (>= 1.1.6),
+    cli (>= 3.6.5)
+Suggests: 
+    testthat (>= 3.2.3),
+    covr,
+    knitr,
+    rmarkdown,
+    desc,
+    usethis,
+    prettycode,
+    ggplot2,
+    vctrs
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Collate: 
+    'declare.R'
+    'import-standalone-types-check.R'
+    'new_type.R'
+    'native_types.R'
+    'print.R'
+    'question_mark.R'
+    'typedr-package.R'
+    'use_typedr.R'
+    'utils-print.R'
+    'utils.R'
+    'zzz.R'
