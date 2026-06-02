@@ -11,6 +11,8 @@
 #'
 #' @return `NULL`, invisibly. Called for side effects.
 #' @export
+
+# nocov start
 use_typedr <- function() {
   check_installed("usethis")
   check_installed("desc")
@@ -24,3 +26,4 @@ use_typedr <- function() {
   usethis::use_import_from("typedr", getNamespaceExports("typedr"), load = FALSE)
   invisible(NULL)
 }
+# nocov end

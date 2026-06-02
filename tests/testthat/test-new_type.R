@@ -118,8 +118,30 @@ test_that("declare can use assertion factories directly", {
 test_that("get_assertion returns the active binding assertion call", {
   declare("typed_for_assertion_lookup", Integer())
 
-  expect_error(get_assertion(typed_for_assertion_lookup), NA)
+  expect_no_error(get_assertion(typed_for_assertion_lookup))
   expect_identical(get_assertion(typed_for_assertion_lookup), expr(Integer()))
+})
+
+test_that("get_assertion errors when active binding has no typedr assertion call", {
+  e <- new.env(parent = emptyenv())
+
+  f <- local({
+    val <- NULL
+    function(assigned_value) {
+      if (!missing(assigned_value)) {
+        val <<- assigned_value
+      }
+      val
+    }
+  })
+
+  makeActiveBinding("plain_binding", f, e)
+  e$get_assertion_ <- get_assertion
+
+  expect_error(
+    with(e, get_assertion_(plain_binding)),
+    class = "typedr_get_assertion_error"
+  )
 })
 
 test_that("get_assertion tolerates instrumented active binding bodies", {

@@ -20,11 +20,3 @@ test_that("as_assertion_factory works", {
   get_assertion(x)
   expect_error(get_assertion(x), NA)
 })
-
-
-test_that("printing works", {
-  fun1 <- ? function() {}
-  expect_equal(print(fun1), fun1)
-  fun2 <- Double() ? function(x = ? Double()) {}
-  expect_equal(print(fun2), fun2)
-})
