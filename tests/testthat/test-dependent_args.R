@@ -1,3 +1,4 @@
+# fmt: skip file
 test_that("dependent argument annotations error when a matching guard fails", {
   f <- ? function(
     a1 = ? Integer() | Character(),

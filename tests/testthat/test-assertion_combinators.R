@@ -1,3 +1,4 @@
+# fmt: skip file
 test_that("typedr assertions support union with |", {
   number <- Integer() | Double()
 
