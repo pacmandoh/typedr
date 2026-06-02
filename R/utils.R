@@ -96,9 +96,9 @@ type_printer <- function(type, printer) {
 }
 
 .typedr_abort_assertion <- function(message,
-                                     class = NULL,
-                                     parent = NULL,
-                                     call = caller_env()) {
+                                    class = NULL,
+                                    parent = NULL,
+                                    call = caller_env()) {
   if (is_null(class)) {
     class <- .typedr_assertion_error_class(message)
   }

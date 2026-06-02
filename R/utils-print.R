@@ -60,7 +60,7 @@ vsc_dark_plus <- function() {
     if (grepl("^[0-9]", token)) {
       return(list(text = col_number(token), bracket_i = bracket_i))
     }
-    if (grepl("^[(){}\\[\\],]$", token)) {
+    if (token %in% c("(", ")", "{", "}", "[", "]", ",")) {
       f <- bracket_style[[((bracket_i - 1L) %% length(bracket_style)) + 1L]]
       return(list(text = f(token), bracket_i = bracket_i + 1L))
     }
@@ -126,15 +126,11 @@ vsc_dark_plus <- function() {
   )
   m <- gregexpr(skip(pat), code, perl = TRUE)
 
-  if (identical(m[[1]][1], -1)) {
-    return(lines)
-  }
-
   s <- attr(m[[1]], "capture.start")
   l <- attr(m[[1]], "capture.length")
   s2 <- if (is_null(dim(s))) s[2] else s[, 2]
   ll <- if (is_null(dim(l))) l[2] else l[, 2]
-  if (!length(s2)) {
+  if (!length(s2) || any(s2 <= 0L) || any(ll <= 0L)) {
     return(lines)
   }
   ord <- order(s2, decreasing = TRUE)
@@ -178,7 +174,8 @@ vsc_dark_plus <- function() {
 }
 
 .maybe_fold <- function(
-    xs, indent, lineno, max_total = 20) {
+  xs, indent, lineno, max_total = 20
+) {
   n <- length(xs)
   if (n <= max_total) {
     return(xs)
@@ -209,11 +206,12 @@ vsc_dark_plus <- function() {
 }
 
 pretty_fn <- function(
-    fn, lineno = TRUE,
-    alt_grey = TRUE, color = TRUE,
-    output = c("cli", "vector", "string"),
-    width_align = NULL, wrap = 60,
-    indent = 2, limit_lines = 20, style = vsc_dark_plus()) {
+  fn, lineno = TRUE,
+  alt_grey = TRUE, color = TRUE,
+  output = c("cli", "vector", "string"),
+  width_align = NULL, wrap = 60,
+  indent = 2, limit_lines = 20, style = vsc_dark_plus()
+) {
   check_function(fn)
   check_bool(lineno)
   check_bool(alt_grey)
@@ -247,7 +245,9 @@ pretty_fn <- function(
 
   if (color) {
     lines <- if (use_prettycode) {
+      # nocov start
       prettycode::highlight(lines, style = style)
+      # nocov end
     } else {
       .highlight_typedr_basic(lines, style = style)
     }

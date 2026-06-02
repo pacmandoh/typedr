@@ -149,7 +149,9 @@ print.typedr_value <- function(x, ...,
     if (inherits(v, c("Date", "POSIXct", "POSIXlt")) || is.factor(v)) {
       return(as.character(v))
     }
+    # nocov start
     format(v)
+    # nocov end
   }
 
   preview_classed <- function(v, n = 10) {
@@ -240,18 +242,11 @@ print.typedr_value <- function(x, ...,
     lines
   }
 
-  preview_grid <- function(values, row_labels = NULL, col_labels = NULL) {
+  preview_grid <- function(values, row_labels, col_labels) {
     values <- as.matrix(values)
     nr <- nrow(values)
     nc <- ncol(values)
     cells <- apply(values, c(1, 2), format_cell)
-
-    if (is_null(row_labels)) {
-      row_labels <- rep("", nr)
-    }
-    if (is_null(col_labels)) {
-      col_labels <- paste0("[,", seq_len(nc), "]")
-    }
 
     row_w <- max(nchar(row_labels), 0L)
     col_w <- vapply(seq_len(nc), function(j) {
@@ -398,10 +393,6 @@ print.typedr_value <- function(x, ...,
   preview_tree_lines <- function(v, n = 10, depth = 1L, max_depth = 2L) {
     if ((is_atomic(v) && is_null(dim(v))) || is.factor(v) || inherits(v, c("Date", "POSIXct", "POSIXlt"))) {
       return(preview_atomic_lines(v, n))
-    }
-
-    if (is_list(v) && !inherits(v, "data.frame") && depth < max_depth) {
-      return(preview_list_items(v, n, depth = depth + 1L, max_depth = max_depth))
     }
 
     character()
@@ -559,7 +550,7 @@ print.typedr_value <- function(x, ...,
 print_all_args <- function(x = .Last.value, ...) {
   check_function(x)
 
-  old <- options(typedr.print.max_args = Inf)
+  old <- options(typedr.print.max_args = .Machine$integer.max)
   on.exit(options(old), add = TRUE)
   print(x, ...)
   invisible(x)
@@ -570,7 +561,7 @@ print_all_args <- function(x = .Last.value, ...) {
 print_whole_fn <- function(x = .Last.value, ...) {
   check_function(x)
 
-  old <- options(typedr.print.fn_limit_lines = Inf)
+  old <- options(typedr.print.fn_limit_lines = .Machine$integer.max)
   on.exit(options(old), add = TRUE)
   print(x, ...)
   invisible(x)
