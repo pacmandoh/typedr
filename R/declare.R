@@ -139,6 +139,245 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
   invisible(NULL)
 }
 
+#' @param .guard Guard expression used to decide whether `.assertion` applies.
+#' @param .severity Whether a guarded assertion failure should error or warn.
+#' @param .inactive Whether a supplied argument should be ignored, warned, or
+#'   rejected when `.guard` does not match.
+#'
+#' @export
+#' @rdname check_arg
+check_dependent_arg <- function(
+  .arg,
+  .guard,
+  .assertion,
+  .severity = c("error", "warning"),
+  .inactive = c("ignore", "warning", "error")
+) {
+  call <- caller_env()
+  arg_expr <- enexpr(.arg)
+  guard_expr <- .guard
+  assertion_expr <- enexpr(.assertion)
+  var_nm <- if (is_symbol(arg_expr)) as_name(arg_expr) else as_label(arg_expr)
+  .severity <- arg_match(.severity)
+  .inactive <- arg_match(.inactive)
+
+  if (!typedr_eval_guard(guard_expr, call)) {
+    if (.inactive != "ignore" && !is_missing(.arg)) {
+      typedr_inactive_arg_cnd(
+        var_nm,
+        guard_expr,
+        severity = .inactive,
+        call = call
+      )
+    }
+    return(invisible(NULL))
+  }
+
+  val <- try_fetch(.assertion(.arg), error = identity)
+  if (!inherits(val, "error")) {
+    return(invisible(NULL))
+  }
+
+  val$call <- assertion_expr
+  guard_label <- expr_deparse(guard_expr)
+  assertion_label <- expr_deparse(assertion_expr)
+  message <- c(
+    "Invalid dependent {.cls Type()} of `{.field {var_nm}}`.",
+    "i" = "Guard `{.field {guard_label}}` matched, so `{.field {var_nm}}` must satisfy {.cls {assertion_label}}."
+  )
+
+  if (.severity == "warning") {
+    cli_warn(
+      message,
+      class = c(
+        "typedr_dependency_warning",
+        "typedr_check_arg_warning",
+        "typedr_warning"
+      )
+    )
+    return(invisible(NULL))
+  }
+
+  cli_abort(
+    message,
+    class = c(
+      "typedr_dependency_error",
+      "typedr_type_error",
+      "typedr_check_arg_error",
+      "typedr_error"
+    ),
+    parent = val,
+    call = call
+  )
+}
+
+typedr_inactive_arg_cnd <- function(var_nm, guard_expr, severity, call) {
+  guard_label <- expr_deparse(guard_expr)
+  message <- c(
+    "Argument `{.field {var_nm}}` is inactive.",
+    "i" = "Guard `{.field {guard_label}}` did not match, so `{.field {var_nm}}` will not take effect."
+  )
+
+  if (severity == "warning") {
+    cli_warn(
+      message,
+      class = c(
+        "typedr_dependency_inactive_warning",
+        "typedr_check_arg_warning",
+        "typedr_warning"
+      )
+    )
+    return(invisible(NULL))
+  }
+
+  cli_abort(
+    message,
+    class = c(
+      "typedr_dependency_inactive_error",
+      "typedr_check_arg_error",
+      "typedr_error"
+    ),
+    call = call
+  )
+}
+
+typedr_eval_guard <- function(guard, env) {
+  if (is_call(guard, "(")) {
+    return(typedr_eval_guard(guard[[2]], env))
+  }
+
+  if (is_call(guard, "!")) {
+    return(!typedr_eval_guard(guard[[2]], env))
+  }
+
+  if (is_call(guard, "|")) {
+    return(typedr_eval_guard(guard[[2]], env) ||
+      typedr_eval_guard(guard[[3]], env))
+  }
+
+  if (is_call(guard, "&")) {
+    return(typedr_eval_guard(guard[[2]], env) &&
+      typedr_eval_guard(guard[[3]], env))
+  }
+
+  if (is_call(guard, ":") && length(guard) == 3L) {
+    return(typedr_eval_guard_condition(guard[[2]], guard[[3]], env))
+  }
+
+  cli_abort(
+    c(
+      "Invalid dependent argument guard.",
+      i = "Use guards like `{.code a1:Integer()}`, combined with `{.code |}` and `{.code &}`."
+    ),
+    class = c(
+      "typedr_guard_error",
+      "typedr_check_arg_error",
+      "typedr_error"
+    ),
+    call = env
+  )
+}
+
+typedr_eval_guard_condition <- function(arg, assertion_expr, env) {
+  if (!is_symbol(arg)) {
+    cli_abort(
+      "Guard left-hand side must be an argument name.",
+      class = c(
+        "typedr_guard_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      call = env
+    )
+  }
+
+  missing_guard <- typedr_is_missing_guard(assertion_expr)
+  if (missing_guard) {
+    return(typedr_arg_is_missing(arg, env))
+  }
+
+  assertion <- eval_bare(assertion_expr, env = env)
+  if (inherits(assertion, "assertion_factory")) {
+    assertion <- assertion()
+  }
+
+  if (!inherits(assertion, "typedr_assertion")) {
+    cli_abort(
+      "Guard right-hand side must be a typedr assertion.",
+      class = c(
+        "typedr_guard_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      call = env
+    )
+  }
+
+  value <- try_fetch(eval_bare(arg, env = env), error = identity)
+  if (inherits(value, "error")) {
+    cli_abort(
+      "Guard argument `{.field {as_name(arg)}}` could not be evaluated.",
+      class = c(
+        "typedr_guard_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      parent = value,
+      call = env
+    )
+  }
+
+  res <- try_fetch(assertion(value), error = identity)
+  !inherits(res, "error")
+}
+
+typedr_is_missing_guard <- function(assertion_expr) {
+  if (is_symbol(assertion_expr)) {
+    return(identical(as_name(assertion_expr), "Missing"))
+  }
+  is_call(assertion_expr) &&
+    length(assertion_expr) == 1L &&
+    identical(call_name(assertion_expr), "Missing")
+}
+
+typedr_arg_is_missing <- function(arg, env) {
+  missing_arg <- try_fetch(
+    eval_bare(call2("missing", arg), env = env),
+    error = identity
+  )
+  if (inherits(missing_arg, "error")) {
+    cli_abort(
+      "Guard argument `{.field {as_name(arg)}}` could not be evaluated.",
+      class = c(
+        "typedr_guard_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      parent = missing_arg,
+      call = env
+    )
+  }
+  if (missing_arg) {
+    return(TRUE)
+  }
+
+  value <- try_fetch(eval_bare(arg, env = env), error = identity)
+  if (inherits(value, "error")) {
+    cli_abort(
+      "Guard argument `{.field {as_name(arg)}}` could not be evaluated.",
+      class = c(
+        "typedr_guard_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      parent = value,
+      call = env
+    )
+  }
+
+  is_null(value)
+}
+
 #' @param x Variable name as a string.
 #' @param assertion Assertion to apply. If `NULL`, the assertion is inferred from
 #'   `value`.

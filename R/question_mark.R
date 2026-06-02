@@ -55,6 +55,26 @@
 #' checks apply to `list(...)` rather than to each element individually. For
 #' instance, `function(... = ? Dots(2))` makes sure that `...` receives 2 values.
 #'
+#' Assertion unions and intersections can be written inline, for example
+#' `arg = ? Integer() | Double()` or
+#' `arg = ? Integer() & Any(... = ~ . > 0L)`.
+#'
+#' Arguments can depend on other arguments using a two-sided formula:
+#' `arg = ? other:Type() ~ Assertion()`. The left side is a guard; the right
+#' side is the assertion applied to `arg` when the guard matches. Guards can use
+#' `|`, `&`, parentheses, and `!`, for example
+#' `arg = ? a1:Integer() | a2:Character() ~ Double()`.
+#'
+#' When a guard does not match, the dependent assertion is ignored by default.
+#' Add `/ Warning()` or `/ Error()` to report when the current argument was
+#' supplied but is inactive, for example
+#' `arg = ? !other:Missing() ~ Double() / Warning()`. In guards, `Missing()`
+#' matches when the referenced argument was not supplied or is `NULL`.
+#'
+#' When a guard matches but the dependent assertion fails, typedr errors by
+#' default. Use `Warning(Assertion())` on the right side to warn instead, for
+#' example `arg = ? other:Integer() ~ Warning(Double())`.
+#'
 #' The returned function will have its body modified so the arguments are
 #' checked by `check_arg()` calls at the top. Printing the function will display
 #' the argument types.
@@ -177,23 +197,118 @@
       )
 
       bind_lgl <- vapply(annotations, function(z) is_call(z, "+"), logical(1))
-      lazy_lgl <- vapply(annotations, function(z) is_call(z, "~"), logical(1))
+      annotations[bind_lgl] <- lapply(annotations[bind_lgl], `[[`, 2)
+      .strip_parens <- function(x) {
+        while (is_call(x, "(")) {
+          x <- x[[2]]
+        }
+        x
+      }
+      annotations <- lapply(annotations, .strip_parens)
+      annotations_attr[bind_lgl] <- annotations[bind_lgl]
 
-      annotations_attr[bind_lgl] <- lapply(annotations_attr[bind_lgl], `[[`, 2)
-      annotations[bind_lgl | lazy_lgl] <- lapply(
-        annotations[bind_lgl | lazy_lgl],
-        `[[`,
-        2
+      guarded_lgl <- vapply(
+        annotations,
+        function(z) is_call(z, "~") && length(z) == 3L,
+        logical(1)
+      )
+      lazy_lgl <- vapply(
+        annotations,
+        function(z) is_call(z, "~") && length(z) == 2L,
+        logical(1)
       )
 
+      if (any(bind_lgl & guarded_lgl)) {
+        cli_abort(
+          "Can't bind dependent argument annotations with `{.field ?+}`.",
+          class = c(
+            "typedr_guard_bind_error",
+            "typedr_qmark_error",
+            "typedr_error"
+          ),
+          call = qmark_error_call
+        )
+      }
+
+      annotations[lazy_lgl] <- lapply(annotations[lazy_lgl], `[[`, 2)
+
+      .dependent_annotation_parts <- function(ann) {
+        guard <- ann[[2]]
+        assertion <- ann[[3]]
+        severity <- "error"
+        inactive <- "ignore"
+        if (is_call(assertion, "/") && length(assertion) == 3L) {
+          fallback <- assertion[[3]]
+          assertion <- assertion[[2]]
+          if (is_call(fallback) && length(fallback) == 1L) {
+            fallback <- fallback[[1]]
+          }
+          if (!is_symbol(fallback)) {
+            cli_abort(
+              "Invalid dependent argument fallback.",
+              i = "Use `{.code / Warning()}` or `{.code / Error()}`.",
+              class = c(
+                "typedr_guard_fallback_error",
+                "typedr_qmark_error",
+                "typedr_error"
+              ),
+              call = qmark_error_call
+            )
+          }
+          fallback <- as_name(fallback)
+          if (fallback %in% c("Warning", "Warn", "warning", "warn")) {
+            inactive <- "warning"
+          } else if (fallback %in% c("Error", "error")) {
+            inactive <- "error"
+          } else {
+            cli_abort(
+              "Invalid dependent argument fallback.",
+              i = "Use `{.code / Warning()}` or `{.code / Error()}`.",
+              class = c(
+                "typedr_guard_fallback_error",
+                "typedr_qmark_error",
+                "typedr_error"
+              ),
+              call = qmark_error_call
+            )
+          }
+        }
+        if (is_call(assertion) && length(assertion) == 2L) {
+          wrapper <- call_name(assertion)
+          if (wrapper %in% c("Warning", "Warn", "warning", "warn")) {
+            severity <- "warning"
+            assertion <- assertion[[2]]
+          } else if (wrapper %in% c("Error", "error")) {
+            assertion <- assertion[[2]]
+          }
+        }
+        list(
+          guard = guard,
+          assertion = assertion,
+          severity = severity,
+          inactive = inactive
+        )
+      }
+
       arg_assertion_factory_calls <- Map(
-        function(arg_nm, ann, bind, lazy) {
+        function(arg_nm, ann, bind, lazy, guarded) {
           if (identical(arg_nm, "...")) {
             if (bind) {
               cli_abort(
                 "Can't bind `{.field {{...}}}` with `{.field ?+}`.",
                 class = c(
                   "typedr_dots_bind_error",
+                  "typedr_qmark_error",
+                  "typedr_error"
+                ),
+                call = qmark_error_call
+              )
+            }
+            if (guarded) {
+              cli_abort(
+                "Can't use dependent argument annotations on `{.field {{...}}}`.",
+                class = c(
+                  "typedr_dots_guard_error",
                   "typedr_qmark_error",
                   "typedr_error"
                 ),
@@ -220,6 +335,22 @@
               }
             )
           }
+          if (guarded) {
+            dep <- .dependent_annotation_parts(ann)
+            guard <- dep$guard
+            assertion <- dep$assertion
+            severity <- dep$severity
+            inactive <- dep$inactive
+            return(expr(
+              check_dependent_arg(
+                !!sym(arg_nm),
+                !!call2("quote", guard),
+                !!assertion,
+                .severity = !!severity,
+                .inactive = !!inactive
+              )
+            ))
+          }
           if (bind) {
             return(expr(check_arg(!!sym(arg_nm), !!ann, .bind = TRUE)))
           }
@@ -233,7 +364,8 @@
         nms[annotated_fmls_lgl],
         annotations,
         bind_lgl,
-        lazy_lgl
+        lazy_lgl,
+        guarded_lgl
       )
 
       fmls[annotated_fmls_lgl] <- lapply(fmls[annotated_fmls_lgl], function(z) {
