@@ -332,12 +332,8 @@ print.typedr_value <- function(
       seq_len(nr),
       function(i) {
         paste0(
-          if (row_w) {
-            format(row_labels[[i]], width = row_w, justify = "right")
-          } else {
-            ""
-          },
-          if (row_w) " " else "",
+          format(row_labels[[i]], width = row_w, justify = "right"),
+          " ",
           paste(
             vapply(
               seq_len(nc),

@@ -118,6 +118,14 @@ test_that("typedr value printing handles shaped and non-atomic values", {
   expect_match(matrix_out, "preview: rows 1-2, cols 1-2", fixed = TRUE)
   expect_match(matrix_out, "[1,]", fixed = TRUE)
 
+  no_row_names <- matrix(1:4, nrow = 2)
+  rownames(no_row_names) <- NULL
+  no_row_names <- structure(no_row_names, class = c("typedr_value", "matrix"))
+  attr(no_row_names, "typedr_assertion") <- quote(Matrix())
+  attr(no_row_names, "typedr_const") <- FALSE
+  no_row_names_out <- capture_typedr_cli(print(no_row_names))
+  expect_match(no_row_names_out, "preview: rows 1-2, cols 1-2", fixed = TRUE)
+
   declare("x_print_array", Array(), value = array(1:8, dim = c(2, 2, 2)))
   array_out <- capture_typedr_cli(print(x_print_array))
   expect_match(array_out, "value: <integer array> dim 2 x 2 x 2", fixed = TRUE)
@@ -375,6 +383,14 @@ test_that("typedr value printing covers fallback objects", {
   call_out <- capture_typedr_cli(print(x_print_call))
   expect_match(call_out, "value:", fixed = TRUE)
   expect_match(call_out, "1 + 2", fixed = TRUE)
+
+  x_print_plain_typed <- structure(
+    1,
+    class = c("typedr_value", class(1)),
+    typedr_const = FALSE
+  )
+  plain_typed_out <- capture_typedr_cli(print(x_print_plain_typed))
+  expect_match(plain_typed_out, "assertion: <none>", fixed = TRUE)
 })
 
 test_that("custom type printer errors are structured", {
@@ -453,6 +469,23 @@ test_that("pretty function formatting covers fallback highlighting and alternate
 
   expect_true(is.character(vector_out))
   expect_match(vector_out[[1]], " 1 function", fixed = TRUE)
+
+  long_fn <- function(alpha = 1) {
+    alpha <- alpha + 1
+    alpha <- alpha + 1
+    alpha <- alpha + 1
+    alpha <- alpha + 1
+    alpha <- alpha + 1
+    alpha
+  }
+
+  cli_out <- capture_typedr_cli(pretty_fn(
+    long_fn,
+    lineno = TRUE,
+    color = FALSE,
+    limit_lines = 5
+  ))
+  expect_match(cli_out, "print_whole_fn()", fixed = TRUE)
 })
 
 test_that("internal highlighting helpers handle empty input and no-op paths", {
