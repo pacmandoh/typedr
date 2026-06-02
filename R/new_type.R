@@ -17,29 +17,32 @@ as_assertion_factory <- function(f) {
   f_call <- call2(expr(f), expr(value), !!!fn_fmls_syms(f)[-1])
   dots_call <- call2("process_assertion_factory_dots", sym("..."))
 
-  res <- new_function(pairlist2(!!!fn_fmls(f)[-1], ... = ), expr({
-    f_call <- substitute(!!f_call)
-    # remove if empty
-    f_call <- Filter(function(value) !identical(value, expr(expr = )), f_call)
+  res <- new_function(
+    pairlist2(!!!fn_fmls(f)[-1], ... = ),
+    expr({
+      f_call <- substitute(!!f_call)
+      # remove if empty
+      f_call <- Filter(function(value) !identical(value, expr(expr = )), f_call)
 
-    header <- call2(
-      "{",
-      expr(f <- !!f), # so the substituted definition is readable
-      substitute(value <- F_CALL, list(F_CALL = f_call))
-    )
+      header <- call2(
+        "{",
+        expr(f <- !!f), # so the substituted definition is readable
+        substitute(value <- F_CALL, list(F_CALL = f_call))
+      )
 
-    # the footer is made of additional assertions derived from `...`
-    footer <- !!dots_call
+      # the footer is made of additional assertions derived from `...`
+      footer <- !!dots_call
 
-    if (is_null(footer)) {
-      body <- call2("{", header, expr(value))
-    } else {
-      body <- call2("{", header, footer, expr(value))
-    }
-    assertion <- new_function(pairlist2(value = ), body)
-    class(assertion) <- c("typedr_assertion", "function")
-    assertion
-  }))
+      if (is_null(footer)) {
+        body <- call2("{", header, expr(value))
+      } else {
+        body <- call2("{", header, footer, expr(value))
+      }
+      assertion <- new_function(pairlist2(value = ), body)
+      class(assertion) <- c("typedr_assertion", "function")
+      assertion
+    })
+  )
 
   class(res) <- "assertion_factory"
   attr(res, "typedr_type_function") <- f
@@ -75,11 +78,17 @@ process_assertion_factory_dots <- function(...) {
             c(
               .(paste0("`", nms[[i]], "` mismatch")),
               "x" = .typedr_compare(
-                .(fun)(value), .(args[[i]]),
-                x_arg = .(paste0(nms[[i]], "(value)")), y_arg = "expected"
+                .(fun)(value),
+                .(args[[i]]),
+                x_arg = .(paste0(nms[[i]], "(value)")),
+                y_arg = "expected"
               )
             ),
-            class = c("typedr_custom_assertion_error", "typedr_assertion_error", "typedr_error")
+            class = c(
+              "typedr_custom_assertion_error",
+              "typedr_assertion_error",
+              "typedr_error"
+            )
           )
         }
       )
@@ -88,27 +97,48 @@ process_assertion_factory_dots <- function(...) {
       if (!is_call(args[[i]], "~")) {
         cli_abort(
           "Assertions should be either named functions or unnamed formulas.",
-          class = c("typedr_input_error", "typedr_assertion_factory_error", "typedr_error")
+          class = c(
+            "typedr_input_error",
+            "typedr_assertion_factory_error",
+            "typedr_error"
+          )
         )
       }
       ## is it a 2 sided formula ?
       if (length(args[[i]]) == 3) {
         error <- args[[i]][[2]]
-        assertion <- do.call(substitute, list(args[[i]][[3]], list(. = quote(value))))
+        assertion <- do.call(
+          substitute,
+          list(args[[i]][[3]], list(. = quote(value)))
+        )
       } else {
         error <- "mismatch"
-        assertion <- do.call(substitute, list(args[[i]][[2]], list(. = quote(value))))
+        assertion <- do.call(
+          substitute,
+          list(args[[i]][[2]], list(. = quote(value)))
+        )
       }
 
-      exprs[[i]] <- bquote(if (!.(assertion)) {
-        cli::cli_abort(
-          c(
-            .(error),
-            "x" = .typedr_compare(FALSE, TRUE, x_arg = .(deparse1(assertion)), y_arg = "expected")
-          ),
-          class = c("typedr_custom_assertion_error", "typedr_assertion_error", "typedr_error")
-        )
-      })
+      exprs[[i]] <- bquote(
+        if (!.(assertion)) {
+          cli::cli_abort(
+            c(
+              .(error),
+              "x" = .typedr_compare(
+                FALSE,
+                TRUE,
+                x_arg = .(deparse1(assertion)),
+                y_arg = "expected"
+              )
+            ),
+            class = c(
+              "typedr_custom_assertion_error",
+              "typedr_assertion_error",
+              "typedr_error"
+            )
+          )
+        }
+      )
     }
   }
   exprs
@@ -141,7 +171,8 @@ infer_implicit_assignment_call <- function(value) {
   }
 
   if (is_atomic(value) && is_null(attr(value, "class"))) {
-    assertion_call <- switch(typeof(value),
+    assertion_call <- switch(
+      typeof(value),
       "logical" = expr(Logical()),
       "integer" = expr(Integer()),
       "double" = expr(Double()),
@@ -152,7 +183,8 @@ infer_implicit_assignment_call <- function(value) {
     return(assertion_call)
   }
   if (length(cl) == 1) {
-    assertion_call <- switch(cl,
+    assertion_call <- switch(
+      cl,
       "list" = expr(List()),
       "NULL" = expr(Null()),
       "function" = expr(Function()),
@@ -184,7 +216,12 @@ get_assertion <- function(x) {
     if (
       length(node) >= 2 &&
         is.call(node[[1]]) &&
-        any(vapply(as.list(node)[-1], identical, logical(1), quote(assigned_value)))
+        any(vapply(
+          as.list(node)[-1],
+          identical,
+          logical(1),
+          quote(assigned_value)
+        ))
     ) {
       return(node[[1]])
     }

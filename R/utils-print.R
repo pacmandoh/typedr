@@ -29,15 +29,25 @@ vsc_dark_plus <- function() {
   bracket_style <- style[["bracket"]] %||% list(function(x) x)
 
   reserved <- c(
-    "function", "if", "else", "for", "in", "while", "repeat", "break",
-    "next", "return"
+    "function",
+    "if",
+    "else",
+    "for",
+    "in",
+    "while",
+    "repeat",
+    "break",
+    "next",
+    "return"
   )
   constants <- c("NULL", "NA", "NaN", "Inf", "TRUE", "FALSE")
   token_re <- paste0(
     '"(?:[^"\\\\]|\\\\.)*"',
     "|'(?:[^'\\\\]|\\\\.)*'",
     "|#[^\n]*",
-    "|\\b(?:", paste(c(reserved, constants), collapse = "|"), ")\\b",
+    "|\\b(?:",
+    paste(c(reserved, constants), collapse = "|"),
+    ")\\b",
     "|\\b[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?[iL]?\\b",
     "|\\b[A-Za-z.][A-Za-z0-9_.]*(?=\\s*\\()",
     "|\\?\\+|\\?~|::|:::|<-|->|<=|>=|==|!=|&&|\\|\\||[?+*/^$@~!:<>|&=\\-]",
@@ -120,9 +130,13 @@ vsc_dark_plus <- function() {
   ansi <- "\\x1B\\[[0-9;]*m"
   skip <- function(p) paste0("(?:", str, "|", ansi, ")(*SKIP)(*F)|", p)
   pat <- paste0(
-    "([\\(,](?:\\s*", ansi, ")*\\s*)",
+    "([\\(,](?:\\s*",
+    ansi,
+    ")*\\s*)",
     "([A-Za-z.][A-Za-z0-9_.]*)",
-    "(?:\\s*", ansi, ")*\\s*(?=(?:=|,|\\)))"
+    "(?:\\s*",
+    ansi,
+    ")*\\s*(?=(?:=|,|\\)))"
   )
   m <- gregexpr(skip(pat), code, perl = TRUE)
 
@@ -152,7 +166,9 @@ vsc_dark_plus <- function() {
     k <- k + 1
     last <- a
   }
-  if (last > 1) out[[k]] <- substr(code, 1, last - 1)
+  if (last > 1) {
+    out[[k]] <- substr(code, 1, last - 1)
+  }
 
   strsplit(paste0(rev(out[seq_len(k)]), collapse = ""), "\n", fixed = TRUE)[[1]]
 }
@@ -168,13 +184,18 @@ vsc_dark_plus <- function() {
   lvl <- nsp %/% from
   rem <- nsp %% from
   new_nsp <- pmax.int(0, lvl * to + rem)
-  ifelse(nsp == 0, lines,
+  ifelse(
+    nsp == 0,
+    lines,
     paste0(strrep(" ", new_nsp), substring(lines, nsp + 1))
   )
 }
 
 .maybe_fold <- function(
-  xs, indent, lineno, max_total = 20
+  xs,
+  indent,
+  lineno,
+  max_total = 20
 ) {
   n <- length(xs)
   if (n <= max_total) {
@@ -206,11 +227,16 @@ vsc_dark_plus <- function() {
 }
 
 pretty_fn <- function(
-  fn, lineno = TRUE,
-  alt_grey = TRUE, color = TRUE,
+  fn,
+  lineno = TRUE,
+  alt_grey = TRUE,
+  color = TRUE,
   output = c("cli", "vector", "string"),
-  width_align = NULL, wrap = 60,
-  indent = 2, limit_lines = 20, style = vsc_dark_plus()
+  width_align = NULL,
+  wrap = 60,
+  indent = 2,
+  limit_lines = 20,
+  style = vsc_dark_plus()
 ) {
   check_function(fn)
   check_bool(lineno)
@@ -232,7 +258,8 @@ pretty_fn <- function(
 
   use_prettycode <- is_installed("prettycode")
   if (!use_prettycode && color) {
-    .warn_once( # R/utils.R
+    .warn_once(
+      # R/utils.R
       id = "prettycode_missing",
       msg = c(
         "!" = "{.pkg prettycode} is not installed, using basic {.pkg typedr} syntax highlighting.",
@@ -256,9 +283,15 @@ pretty_fn <- function(
 
   if (lineno) {
     n <- seq_along(lines)
-    width <- if (is_null(width_align)) nchar(length(lines)) else as.integer(width_align)
+    width <- if (is_null(width_align)) {
+      nchar(length(lines))
+    } else {
+      as.integer(width_align)
+    }
     idx <- sprintf(paste0("%", width, "d"), n)
-    if (alt_grey) idx[n %% 2 == 0] <- col_grey(idx[n %% 2 == 0])
+    if (alt_grey) {
+      idx[n %% 2 == 0] <- col_grey(idx[n %% 2 == 0])
+    }
     lines <- paste0(idx, " ", lines)
   }
 
@@ -268,7 +301,11 @@ pretty_fn <- function(
   if (output == "cli") {
     cli_verbatim(c(
       lines,
-      if (lln < llr) info <- col_grey(format_inline("Run `typedr::print_whole_fn()` to see whole function."))
+      if (lln < llr) {
+        info <- col_grey(format_inline(
+          "Run `typedr::print_whole_fn()` to see whole function."
+        ))
+      }
     ))
     invisible(lines)
   } else if (output == "vector") {
@@ -292,7 +329,9 @@ pretty_fn <- function(
 
   env_lab <- function(e) {
     nm <- environmentName(e)
-    if (!nzchar(nm)) nm <- if (identical(e, .GlobalEnv)) "global" else "<unnamed>"
+    if (!nzchar(nm)) {
+      nm <- if (identical(e, .GlobalEnv)) "global" else "<unnamed>"
+    }
     nm
   }
 
@@ -307,7 +346,9 @@ pretty_fn <- function(
 
   fmls <- fn_fmls(x)
   n_args <- length(fmls)
-  n_defaults <- sum(!vapply(fmls, function(z) identical(z, expr(expr = )), logical(1)))
+  n_defaults <- sum(
+    !vapply(fmls, function(z) identical(z, expr(expr = )), logical(1))
+  )
   has_dots <- any(names(fmls) == "...")
   arg_types <- attr(x, "arg_types", exact = TRUE) %||% list()
 
@@ -319,8 +360,16 @@ pretty_fn <- function(
     paste(expr_deparse(ret_type), collapse = "")
   }
 
-  sizes <- list(fn = utils::object.size(x), formals = utils::object.size(fmls), body = utils::object.size(body(x)))
-  addrs <- list(fn = obj_address(x), formals = obj_address(fmls), body = obj_address(body(x)))
+  sizes <- list(
+    fn = utils::object.size(x),
+    formals = utils::object.size(fmls),
+    body = utils::object.size(body(x))
+  )
+  addrs <- list(
+    fn = obj_address(x),
+    formals = obj_address(fmls),
+    body = obj_address(body(x))
+  )
 
   counts <- new.env(parent = emptyenv())
   counts$calls_total <- 0L
@@ -349,12 +398,25 @@ pretty_fn <- function(
     if (is_call(node)) {
       counts$calls_total <- counts$calls_total + 1L
       hd_key <- deparse1(node[[1L]])
-      cur <- get0(hd_key, envir = counts$by_head, inherits = FALSE, ifnotfound = 0L)
+      cur <- get0(
+        hd_key,
+        envir = counts$by_head,
+        inherits = FALSE,
+        ifnotfound = 0L
+      )
       assign(hd_key, cur + 1L, envir = counts$by_head)
-      if (identical(hd_key, "return")) counts$returns <- counts$returns + 1L
-      if (length(node) > 1L) for (i in seq.int(2L, length(node))) stk <- push(stk, node[[i]])
+      if (identical(hd_key, "return")) {
+        counts$returns <- counts$returns + 1L
+      }
+      if (length(node) > 1L) {
+        for (i in seq.int(2L, length(node))) {
+          stk <- push(stk, node[[i]])
+        }
+      }
     } else if (is_pairlist(node)) {
-      for (i in seq_along(node)) stk <- push(stk, node[[i]])
+      for (i in seq_along(node)) {
+        stk <- push(stk, node[[i]])
+      }
     } else if (is_symbol(node)) {
       counts$symbols <- counts$symbols + 1L
     } else if (is_character(node)) {
@@ -368,7 +430,11 @@ pretty_fn <- function(
 
   heads <- ls(envir = counts$by_head, all.names = TRUE)
   freq <- if (length(heads)) {
-    vapply(heads, function(k) get(k, envir = counts$by_head, inherits = FALSE), integer(1))
+    vapply(
+      heads,
+      function(k) get(k, envir = counts$by_head, inherits = FALSE),
+      integer(1)
+    )
   } else {
     integer()
   }
@@ -377,12 +443,22 @@ pretty_fn <- function(
   freq <- freq[ord]
   kk <- min(as.integer(top_k), length(freq))
   top_calls <- if (kk) {
-    paste0("`", heads[seq_len(kk)], "`", " [", col_green(freq[seq_len(kk)]), "]")
+    paste0(
+      "`",
+      heads[seq_len(kk)],
+      "`",
+      " [",
+      col_green(freq[seq_len(kk)]),
+      "]"
+    )
   } else {
     character()
   }
 
-  body_lines <- length(deparse(body(x), width.cutoff = as.integer(width_cutoff)))
+  body_lines <- length(deparse(
+    body(x),
+    width.cutoff = as.integer(width_cutoff)
+  ))
 
   e_cur <- environment(x)
   e_name <- env_lab(e_cur)
@@ -390,29 +466,47 @@ pretty_fn <- function(
 
   cli_text("{col_yellow('-')} {.strong `<typedr>` function Stats}")
   cli_bullets(c(
-    "i" = format_inline("Signature: {.code fn(}{paste(names(fmls), collapse = ', ')}{.code )}
-      {cli::symbol$arrow_right} {.cls {ret_label}}"),
-    "i" = format_inline("Args: {.field {n_args}} total,
-      {.field {n_defaults}} with defaults{if (has_dots) ', + ...' else ''}"),
+    "i" = format_inline(
+      "Signature: {.code fn(}{paste(names(fmls), collapse = ', ')}{.code )}
+      {cli::symbol$arrow_right} {.cls {ret_label}}"
+    ),
+    "i" = format_inline(
+      "Args: {.field {n_args}} total,
+      {.field {n_defaults}} with defaults{if (has_dots) ', + ...' else ''}"
+    ),
     "i" = format_inline("Types: {.field {n_annot}} annotated")
   ))
   cli_text("{col_yellow('-')} {.strong Address & Size}")
   cli_bullets(c(
     "i" = format_inline("Env: {.cls {e_name}} (depth: {.field {e_depth}})"),
-    "i" = format_inline("Memory: fn = {.field {fmt_bytes(sizes$fn)}} {col_grey('/')}
-      formals = {.field {fmt_bytes(sizes$formals)}} {col_grey('/')} body = {.field {fmt_bytes(sizes$body)}}"),
-    "i" = format_inline("Address: fn<{addrs$fn}> {col_grey('/')}
-      formals<{addrs$formals}> {col_grey('/')} body<{addrs$body}>")
+    "i" = format_inline(
+      "Memory: fn = {.field {fmt_bytes(sizes$fn)}} {col_grey('/')}
+      formals = {.field {fmt_bytes(sizes$formals)}} {col_grey('/')} body = {.field {fmt_bytes(sizes$body)}}"
+    ),
+    "i" = format_inline(
+      "Address: fn<{addrs$fn}> {col_grey('/')}
+      formals<{addrs$formals}> {col_grey('/')} body<{addrs$body}>"
+    )
   ))
   cli_text("{col_yellow('-')} {.strong Body {col_grey('/')} tokens}")
   cli_bullets(c(
-    "i" = format_inline("Body: {.field {body_lines}} lines,
-      {.field {counts$calls_total}} calls, {.field {counts$returns}} returns"),
-    "i" = format_inline("Literals: strings = {.field {counts$strings}},
-      numbers = {.field {counts$numbers}}, logical = {.field {counts$logical}}")
+    "i" = format_inline(
+      "Body: {.field {body_lines}} lines,
+      {.field {counts$calls_total}} calls, {.field {counts$returns}} returns"
+    ),
+    "i" = format_inline(
+      "Literals: strings = {.field {counts$strings}},
+      numbers = {.field {counts$numbers}}, logical = {.field {counts$logical}}"
+    )
   ))
-  if (length(top_calls)) cli_bullets(c("i" = format_inline("Top calls: {{top_calls}}")))
-  pkg_vs <- col_grey(paste0("{{typedr}} (", as.character(utils::packageVersion("typedr")), ")"))
+  if (length(top_calls)) {
+    cli_bullets(c("i" = format_inline("Top calls: {{top_calls}}")))
+  }
+  pkg_vs <- col_grey(paste0(
+    "{{typedr}} (",
+    as.character(utils::packageVersion("typedr")),
+    ")"
+  ))
   cli_bullets(c("i" = format_inline("Version: {pkg_vs}")))
   invisible(x)
 }

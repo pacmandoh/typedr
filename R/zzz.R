@@ -6,15 +6,26 @@
   if (isNamespaceLoaded("pkgload")) {
     # global_entrace()
     attr(`?`, "original") <- utils::getFromNamespace("shim_question", "pkgload")
-    utils::getFromNamespace("assignInNamespace", "utils")("shim_question", `?`, "pkgload")
+    utils::getFromNamespace("assignInNamespace", "utils")(
+      "shim_question",
+      `?`,
+      "pkgload"
+    )
   }
 }
 
 .onDetach <- function(...) {
   if (isNamespaceLoaded("pkgload")) {
-    original <- attr(utils::getFromNamespace("shim_question", "pkgload"), "original")
+    original <- attr(
+      utils::getFromNamespace("shim_question", "pkgload"),
+      "original"
+    )
     if (!is_null(original)) {
-      utils::getFromNamespace("assignInNamespace", "utils")(original, `?`, "pkgload")
+      utils::getFromNamespace("assignInNamespace", "utils")(
+        original,
+        `?`,
+        "pkgload"
+      )
     }
   }
 }

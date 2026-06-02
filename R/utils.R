@@ -77,14 +77,22 @@ type_printer <- function(type, printer) {
 
 .typedr_compare <- function(actual, expected, x_arg, y_arg = "expected") {
   paste0(
-    "`", x_arg, "`: ", col_green(.typedr_deparse(actual)), "\n",
-    "`", y_arg, "`: ", col_green(.typedr_deparse(expected))
+    "`",
+    x_arg,
+    "`: ",
+    col_green(.typedr_deparse(actual)),
+    "\n",
+    "`",
+    y_arg,
+    "`: ",
+    col_green(.typedr_deparse(expected))
   )
 }
 
 .typedr_assertion_error_class <- function(message) {
   header <- unname(message[[1]])
-  switch(header,
+  switch(
+    header,
     "type mismatch" = "typedr_type_mismatch",
     "length mismatch" = "typedr_length_mismatch",
     "Row number mismatch" = "typedr_shape_mismatch",
@@ -95,10 +103,12 @@ type_printer <- function(type, printer) {
   )
 }
 
-.typedr_abort_assertion <- function(message,
-                                    class = NULL,
-                                    parent = NULL,
-                                    call = caller_env()) {
+.typedr_abort_assertion <- function(
+  message,
+  class = NULL,
+  parent = NULL,
+  call = caller_env()
+) {
   if (is_null(class)) {
     class <- .typedr_assertion_error_class(message)
   }

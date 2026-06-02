@@ -56,7 +56,11 @@ test_that("formula dots add custom checks with and without custom messages", {
 
   expect_equal(fruit("apple"), "apple")
   expect_error(fruit("potato"), class = "typedr_custom_assertion_error")
-  expect_error(named_fruit("potato"), "not fruit", class = "typedr_custom_assertion_error")
+  expect_error(
+    named_fruit("potato"),
+    "not fruit",
+    class = "typedr_custom_assertion_error"
+  )
 })
 
 test_that("malformed dots fail with typedr input errors", {
@@ -88,14 +92,32 @@ test_that("implicit assignment inference uses expected assertion calls", {
 
   expect_identical(infer_implicit_assignment_call(list()), expr(List()))
   expect_identical(infer_implicit_assignment_call(NULL), expr(Null()))
-  expect_identical(infer_implicit_assignment_call(function() NULL), expr(Function()))
-  expect_identical(infer_implicit_assignment_call(new.env()), expr(Environment()))
+  expect_identical(
+    infer_implicit_assignment_call(function() NULL),
+    expr(Function())
+  )
+  expect_identical(
+    infer_implicit_assignment_call(new.env()),
+    expr(Environment())
+  )
   expect_identical(infer_implicit_assignment_call(quote(x)), expr(Symbol()))
-  expect_identical(infer_implicit_assignment_call(pairlist(x = 1)), expr(Pairlist()))
-  expect_identical(infer_implicit_assignment_call(quote(x + y)), expr(Language()))
-  expect_identical(infer_implicit_assignment_call(expression(x)), expr(Expression()))
+  expect_identical(
+    infer_implicit_assignment_call(pairlist(x = 1)),
+    expr(Pairlist())
+  )
+  expect_identical(
+    infer_implicit_assignment_call(quote(x + y)),
+    expr(Language())
+  )
+  expect_identical(
+    infer_implicit_assignment_call(expression(x)),
+    expr(Expression())
+  )
   expect_identical(infer_implicit_assignment_call(factor("a")), expr(Factor()))
-  expect_identical(infer_implicit_assignment_call(data.frame(x = 1)), expr(Data.frame()))
+  expect_identical(
+    infer_implicit_assignment_call(data.frame(x = 1)),
+    expr(Data.frame())
+  )
   expect_identical(infer_implicit_assignment_call(matrix(1)), expr(Matrix()))
   expect_identical(infer_implicit_assignment_call(array(1)), expr(Array()))
   expect_identical(infer_implicit_assignment_call(Sys.Date()), expr(Date()))
@@ -104,14 +126,24 @@ test_that("implicit assignment inference uses expected assertion calls", {
 
 test_that("implicit assignment inference falls back to Any for unsupported classes", {
   obj <- structure(1, class = "custom_class")
-  expect_identical(infer_implicit_assignment_call(obj), call2("Any", class = "custom_class"))
+  expect_identical(
+    infer_implicit_assignment_call(obj),
+    call2("Any", class = "custom_class")
+  )
 
   obj_multi <- structure(1, class = c("custom_a", "custom_b"))
-  expect_identical(infer_implicit_assignment_call(obj_multi), call2("Any", class = c("custom_a", "custom_b")))
+  expect_identical(
+    infer_implicit_assignment_call(obj_multi),
+    call2("Any", class = c("custom_a", "custom_b"))
+  )
 })
 
 test_that("declare can use assertion factories directly", {
-  expect_equal(declare("typed_from_factory", Double, value = 1), 1, ignore_attr = TRUE)
+  expect_equal(
+    declare("typed_from_factory", Double, value = 1),
+    1,
+    ignore_attr = TRUE
+  )
   expect_error(typed_from_factory <- 1L, class = "typedr_assign_error")
 })
 

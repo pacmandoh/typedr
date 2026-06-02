@@ -24,7 +24,7 @@ test_that("active bindings keep declared values and argument bindings honest und
 })
 
 test_that("question mark syntax holds across repeated runtime checks", {
-  f <- Double() ? function(x = ? Double(), y = ? Double()) {
+  f <- Double()?function(x = ?Double(), y = ?Double()) {
     x + y
   }
 
@@ -35,7 +35,7 @@ test_that("question mark syntax holds across repeated runtime checks", {
 
   expect_error(f(1L, 2), class = "typedr_type_error")
 
-  bad_return <- Character() ? function(x = ? Double()) {
+  bad_return <- Character()?function(x = ?Double()) {
     x + 1
   }
   expect_error(bad_return(1), class = "typedr_return_error")

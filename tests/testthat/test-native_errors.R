@@ -49,7 +49,10 @@ test_that("native assertions use length, shape, and null mismatch classes", {
   expect_typedr_error(Matrix(2)(matrix(1)), "typedr_shape_mismatch")
   expect_typedr_error(Matrix(, 2)(matrix(1)), "typedr_shape_mismatch")
   expect_typedr_error(Data.frame(2)(data.frame(x = 1)), "typedr_shape_mismatch")
-  expect_typedr_error(Data.frame(, 2)(data.frame(x = 1)), "typedr_shape_mismatch")
+  expect_typedr_error(
+    Data.frame(, 2)(data.frame(x = 1)),
+    "typedr_shape_mismatch"
+  )
   expect_typedr_error(Array(c(1, 2))(matrix(1)), "typedr_shape_mismatch")
 
   expect_typedr_error(Pairlist(null_ok = FALSE)(NULL), "typedr_null_mismatch")
@@ -61,7 +64,10 @@ test_that("container each failures preserve parent assertion errors", {
     "typedr_element_error"
   )
   expect_s3_class(list_err$parent, "typedr_type_mismatch")
-  expect_match(conditionMessage(list_err), 'element 1 \\("a"\\) failed assertion')
+  expect_match(
+    conditionMessage(list_err),
+    'element 1 \\("a"\\) failed assertion'
+  )
 
   pairlist_err <- expect_typedr_error(
     Pairlist(each = Double())(pairlist(1L)),
@@ -75,7 +81,10 @@ test_that("container each failures preserve parent assertion errors", {
     "typedr_column_error"
   )
   expect_s3_class(data_frame_err$parent, "typedr_type_mismatch")
-  expect_match(conditionMessage(data_frame_err), 'column 1 \\("a"\\) failed assertion')
+  expect_match(
+    conditionMessage(data_frame_err),
+    'column 1 \\("a"\\) failed assertion'
+  )
 
   dots_err <- expect_typedr_error(
     Dots(each = Double())(list(1L)),

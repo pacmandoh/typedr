@@ -11,19 +11,30 @@ print.assertion_factory <- function(x, ...) {
     color = getOption("typedr.print.fn_color", TRUE),
     wrap = getOption("typedr.print.fn_wrap", 60),
     indent = getOption("typedr.print.factory_fn_indent", 4),
-    limit_lines = getOption("typedr.print.factory_fn_limit_lines", .Machine$integer.max),
+    limit_lines = getOption(
+      "typedr.print.factory_fn_limit_lines",
+      .Machine$integer.max
+    ),
     style = getOption("typedr.print.highlight", vsc_dark_plus())
   )
   if (length(fmls)) {
-    args <- vapply(names(fmls), function(arg) {
-      def <- fmls[[arg]]
-      def_val <- if (is_missing(def) || identical(def, expr(expr = ))) "" else expr_deparse(def)
-      if (nzchar(def_val)) {
-        format_inline("{.arg {arg}} {col_green('=')} {.field {def_val}}")
-      } else {
-        format_inline("{.arg {arg}}")
-      }
-    }, character(1))
+    args <- vapply(
+      names(fmls),
+      function(arg) {
+        def <- fmls[[arg]]
+        def_val <- if (is_missing(def) || identical(def, expr(expr = ))) {
+          ""
+        } else {
+          expr_deparse(def)
+        }
+        if (nzchar(def_val)) {
+          format_inline("{.arg {arg}} {col_green('=')} {.field {def_val}}")
+        } else {
+          format_inline("{.arg {arg}}")
+        }
+      },
+      character(1)
+    )
     cli_text("{.strong Arguments:}")
     cli_bullets(set_names(args, rep("*", length(args))))
   } else {
@@ -60,11 +71,16 @@ print.typedr <- function(x, ...) {
 
   fmls <- fn_fmls(x)
   return_type <- attr(x, "return_type", exact = TRUE)
-  return_type <- if (is_null(return_type) || identical(return_type, NA)) "Any()" else expr_deparse(return_type)
+  return_type <- if (is_null(return_type) || identical(return_type, NA)) {
+    "Any()"
+  } else {
+    expr_deparse(return_type)
+  }
   arg_types <- attr(x, "arg_types", exact = TRUE) %||% list()
 
   cli_text("{.strong {col_grey('<typedr function>')}}")
-  pretty_fn( # R/utils-print.R
+  pretty_fn(
+    # R/utils-print.R
     x,
     lineno = fn_lineno,
     color = fn_color,
@@ -84,9 +100,15 @@ print.typedr <- function(x, ...) {
       function(arg) {
         cls <- expr_deparse(arg_types[[arg]])
         def <- fmls[[arg]]
-        def_val <- if (is_missing(def) || identical(def, expr(expr = ))) "" else expr_deparse(def)
+        def_val <- if (is_missing(def) || identical(def, expr(expr = ))) {
+          ""
+        } else {
+          expr_deparse(def)
+        }
         if (nzchar(def_val)) {
-          format_inline("{.arg {arg}}: {.cls {cls}} {col_green('->')} {.emph default: {.field {def_val}}}")
+          format_inline(
+            "{.arg {arg}}: {.cls {cls}} {col_green('->')} {.emph default: {.field {def_val}}}"
+          )
         } else {
           format_inline("{.arg {arg}}: {.cls {cls}}")
         }
@@ -108,9 +130,12 @@ print.typedr <- function(x, ...) {
 }
 
 #' @export
-print.typedr_value <- function(x, ...,
-                               max_items = getOption("typedr.max_items", 20),
-                               full_value = FALSE) {
+print.typedr_value <- function(
+  x,
+  ...,
+  max_items = getOption("typedr.max_items", 20),
+  full_value = FALSE
+) {
   max_items <- max(1L, as.integer(max_items)[[1]])
   full_value <- isTRUE(full_value)
   truncated <- FALSE
@@ -169,7 +194,9 @@ print.typedr_value <- function(x, ...,
     cli_text("{.field data}: {preview_classed(v, n_show)}")
     if (!full_value && len > n_show) {
       mark_truncated()
-      cli_text(col_grey(format_inline("{.emph # ... with {format_len(len - n_show)} more values}")))
+      cli_text(col_grey(format_inline(
+        "{.emph # ... with {format_len(len - n_show)} more values}"
+      )))
     }
   }
 
@@ -181,7 +208,8 @@ print.typedr_value <- function(x, ...,
     } else if (inherits(v, "Date")) {
       "date"
     } else {
-      switch(typeof(v),
+      switch(
+        typeof(v),
         "integer" = "int",
         "double" = "dbl",
         "character" = "chr",
@@ -211,19 +239,38 @@ print.typedr_value <- function(x, ...,
 
     n_show <- if (full_value) nr else min(nr, n)
     cols <- names2(df)
-    types <- vapply(df, function(col) paste0("<", vec_ptype(col), ">"), character(1))
+    types <- vapply(
+      df,
+      function(col) paste0("<", vec_ptype(col), ">"),
+      character(1)
+    )
     body <- lapply(seq_len(nc), function(j) {
-      vapply(seq_len(n_show), function(i) format_cell(df[[j]][[i]]), character(1))
+      vapply(
+        seq_len(n_show),
+        function(i) format_cell(df[[j]][[i]]),
+        character(1)
+      )
     })
 
-    widths <- vapply(seq_len(nc), function(j) {
-      max(nchar(c(cols[[j]], types[[j]], body[[j]])), 1L)
-    }, integer(1))
+    widths <- vapply(
+      seq_len(nc),
+      function(j) {
+        max(nchar(c(cols[[j]], types[[j]], body[[j]])), 1L)
+      },
+      integer(1)
+    )
 
     fmt_row <- function(values) {
-      paste(vapply(seq_len(nc), function(j) {
-        format(values[[j]], width = widths[[j]], justify = "right")
-      }, character(1)), collapse = " ")
+      paste(
+        vapply(
+          seq_len(nc),
+          function(j) {
+            format(values[[j]], width = widths[[j]], justify = "right")
+          },
+          character(1)
+        ),
+        collapse = " "
+      )
     }
 
     lines <- c(
@@ -231,13 +278,22 @@ print.typedr_value <- function(x, ...,
       col_grey(format_inline("{.emph {fmt_row(types)}}"))
     )
 
-    rows <- vapply(seq_len(n_show), function(i) {
-      fmt_row(vapply(body, `[[`, character(1), i))
-    }, character(1))
+    rows <- vapply(
+      seq_len(n_show),
+      function(i) {
+        fmt_row(vapply(body, `[[`, character(1), i))
+      },
+      character(1)
+    )
     lines <- c(lines, rows)
     if (!full_value && nr > n_show) {
       mark_truncated()
-      lines <- c(lines, col_grey(format_inline("{.emph # ... with {format_len(nr - n_show)} more rows}")))
+      lines <- c(
+        lines,
+        col_grey(format_inline(
+          "{.emph # ... with {format_len(nr - n_show)} more rows}"
+        ))
+      )
     }
     lines
   }
@@ -249,27 +305,53 @@ print.typedr_value <- function(x, ...,
     cells <- apply(values, c(1, 2), format_cell)
 
     row_w <- max(nchar(row_labels), 0L)
-    col_w <- vapply(seq_len(nc), function(j) {
-      max(nchar(c(col_labels[[j]], cells[, j])), 1L)
-    }, integer(1))
+    col_w <- vapply(
+      seq_len(nc),
+      function(j) {
+        max(nchar(c(col_labels[[j]], cells[, j])), 1L)
+      },
+      integer(1)
+    )
 
     header <- paste0(
       strrep(" ", row_w),
       if (row_w) " " else "",
-      paste(vapply(seq_len(nc), function(j) {
-        format(col_labels[[j]], width = col_w[[j]], justify = "right")
-      }, character(1)), collapse = " ")
+      paste(
+        vapply(
+          seq_len(nc),
+          function(j) {
+            format(col_labels[[j]], width = col_w[[j]], justify = "right")
+          },
+          character(1)
+        ),
+        collapse = " "
+      )
     )
 
-    rows <- vapply(seq_len(nr), function(i) {
-      paste0(
-        if (row_w) format(row_labels[[i]], width = row_w, justify = "right") else "",
-        if (row_w) " " else "",
-        paste(vapply(seq_len(nc), function(j) {
-          format(cells[[i, j]], width = col_w[[j]], justify = "right")
-        }, character(1)), collapse = " ")
-      )
-    }, character(1))
+    rows <- vapply(
+      seq_len(nr),
+      function(i) {
+        paste0(
+          if (row_w) {
+            format(row_labels[[i]], width = row_w, justify = "right")
+          } else {
+            ""
+          },
+          if (row_w) " " else "",
+          paste(
+            vapply(
+              seq_len(nc),
+              function(j) {
+                format(cells[[i, j]], width = col_w[[j]], justify = "right")
+              },
+              character(1)
+            ),
+            collapse = " "
+          )
+        )
+      },
+      character(1)
+    )
 
     c(header, rows)
   }
@@ -281,7 +363,9 @@ print.typedr_value <- function(x, ...,
     n_col <- if (full_value) nc else min(nc, max(1L, floor(n / n_row)))
     cells <- m[seq_len(n_row), seq_len(n_col), drop = FALSE]
     lines <- c(
-      col_grey(format_inline("{.emph preview: rows 1-{n_row}, cols 1-{n_col}}")),
+      col_grey(format_inline(
+        "{.emph preview: rows 1-{n_row}, cols 1-{n_col}}"
+      )),
       preview_grid(
         cells,
         row_labels = paste0("[", seq_len(n_row), ",]"),
@@ -292,7 +376,9 @@ print.typedr_value <- function(x, ...,
       mark_truncated()
       lines <- c(
         lines,
-        col_grey(format_inline("{.emph # ... {format_len(nr - n_row)} more rows, {format_len(nc - n_col)} more cols}"))
+        col_grey(format_inline(
+          "{.emph # ... {format_len(nr - n_row)} more rows, {format_len(nc - n_col)} more cols}"
+        ))
       )
     }
     lines
@@ -309,12 +395,16 @@ print.typedr_value <- function(x, ...,
       mark_truncated()
       return(c(
         col_grey(format_inline("{.emph preview: flattened values}")),
-        format_inline("{.field data}: {preview_items(utils::head(as.vector(a), n))}"),
-        col_grey(format_inline("{.emph # ... with {format_len(len - n)} more values}"))
+        format_inline(
+          "{.field data}: {preview_items(utils::head(as.vector(a), n))}"
+        ),
+        col_grey(format_inline(
+          "{.emph # ... with {format_len(len - n)} more values}"
+        ))
       ))
     }
 
-    slice <- a[, , 1, drop = TRUE]
+    slice <- a[,, 1, drop = TRUE]
     if (!is.matrix(slice)) {
       slice <- matrix(as.vector(slice), nrow = dm[[1]])
     }
@@ -326,7 +416,12 @@ print.typedr_value <- function(x, ...,
     extra_slices <- prod(dm[-c(1, 2)]) - 1L
     if (extra_slices > 0L) {
       mark_truncated()
-      lines <- c(lines, col_grey(format_inline("{.emph # ... with {format_len(extra_slices)} more slices}")))
+      lines <- c(
+        lines,
+        col_grey(format_inline(
+          "{.emph # ... with {format_len(extra_slices)} more slices}"
+        ))
+      )
     }
 
     if (len > n) {
@@ -334,8 +429,12 @@ print.typedr_value <- function(x, ...,
       lines <- c(
         lines,
         col_grey(format_inline("{.emph preview: flattened values}")),
-        format_inline("{.field data}: {preview_items(utils::head(as.vector(a), n))}"),
-        col_grey(format_inline("{.emph # ... with {format_len(len - n)} more values}"))
+        format_inline(
+          "{.field data}: {preview_items(utils::head(as.vector(a), n))}"
+        ),
+        col_grey(format_inline(
+          "{.emph # ... with {format_len(len - n)} more values}"
+        ))
       )
     }
     lines
@@ -350,12 +449,18 @@ print.typedr_value <- function(x, ...,
       format_inline("{.cls Date} [{format_len(length(v))}]")
     } else if (is.matrix(v)) {
       label <- paste(typeof(v), "matrix")
-      format_inline("{.cls {label}} {format_len(nrow(v))} x {format_len(ncol(v))}")
+      format_inline(
+        "{.cls {label}} {format_len(nrow(v))} x {format_len(ncol(v))}"
+      )
     } else if (is.array(v)) {
       label <- paste(typeof(v), "array")
-      format_inline("{.cls {label}} dim {paste(format_len(dim(v)), collapse = ' x ')}")
+      format_inline(
+        "{.cls {label}} dim {paste(format_len(dim(v)), collapse = ' x ')}"
+      )
     } else if (inherits(v, "data.frame")) {
-      format_inline("{.cls data.frame} {format_len(nrow(v))} x {format_len(ncol(v))}")
+      format_inline(
+        "{.cls data.frame} {format_len(nrow(v))} x {format_len(ncol(v))}"
+      )
     } else if (is_list(v)) {
       format_inline("{.cls list} [{format_len(length(v))}]")
     } else {
@@ -386,12 +491,18 @@ print.typedr_value <- function(x, ...,
     mark_truncated()
     c(
       format_inline("{.field data}: {preview(utils::head(v, n_show), n_show)}"),
-      col_grey(format_inline("{.emph # ... with {format_len(len - n_show)} more values}"))
+      col_grey(format_inline(
+        "{.emph # ... with {format_len(len - n_show)} more values}"
+      ))
     )
   }
 
   preview_tree_lines <- function(v, n = 10, depth = 1L, max_depth = 2L) {
-    if ((is_atomic(v) && is_null(dim(v))) || is.factor(v) || inherits(v, c("Date", "POSIXct", "POSIXlt"))) {
+    if (
+      (is_atomic(v) && is_null(dim(v))) ||
+        is.factor(v) ||
+        inherits(v, c("Date", "POSIXct", "POSIXlt"))
+    ) {
       return(preview_atomic_lines(v, n))
     }
 
@@ -405,34 +516,46 @@ print.typedr_value <- function(x, ...,
     }
     nms <- names2(v)
     idx <- seq_len(min(len, n))
-    lines <- unlist(lapply(idx, function(i) {
-      nm <- if (nms[[i]] == "") paste0("[[", i, "]]") else nms[[i]]
-      item <- v[[i]]
-      head <- paste0(
-        strrep("  ", depth - 1L),
-        "* ",
-        format_inline("{.field {nm}}"),
-        ": ",
-        type_summary(item)
-      )
-      child_is_list <- is_list(item) && !inherits(item, "data.frame") && depth < max_depth
-      child <- if (child_is_list) {
-        preview_list_items(item, n = n, depth = depth + 1L, max_depth = max_depth)
-      } else {
-        preview_tree_lines(item, n = n, depth = depth, max_depth = max_depth)
-      }
-      if (length(child) && !child_is_list) {
-        child <- paste0(strrep("  ", depth), child)
-      }
-      c(head, child)
-    }), use.names = FALSE)
+    lines <- unlist(
+      lapply(idx, function(i) {
+        nm <- if (nms[[i]] == "") paste0("[[", i, "]]") else nms[[i]]
+        item <- v[[i]]
+        head <- paste0(
+          strrep("  ", depth - 1L),
+          "* ",
+          format_inline("{.field {nm}}"),
+          ": ",
+          type_summary(item)
+        )
+        child_is_list <- is_list(item) &&
+          !inherits(item, "data.frame") &&
+          depth < max_depth
+        child <- if (child_is_list) {
+          preview_list_items(
+            item,
+            n = n,
+            depth = depth + 1L,
+            max_depth = max_depth
+          )
+        } else {
+          preview_tree_lines(item, n = n, depth = depth, max_depth = max_depth)
+        }
+        if (length(child) && !child_is_list) {
+          child <- paste0(strrep("  ", depth), child)
+        }
+        c(head, child)
+      }),
+      use.names = FALSE
+    )
 
     if (len > length(idx)) {
       mark_truncated()
       lines <- c(
         lines,
         col_grey(
-          format_inline("{strrep('  ', depth - 1L)}{.emph # ... with {format_len(len - length(idx))} more elements}")
+          format_inline(
+            "{strrep('  ', depth - 1L)}{.emph # ... with {format_len(len - length(idx))} more elements}"
+          )
         )
       )
     }
@@ -473,10 +596,14 @@ print.typedr_value <- function(x, ...,
     )
     cli_verbatim(preview_matrix(untyped, max_items))
   } else if (is.array(untyped)) {
-    cli_text("{.field value}: {.cls {typeof(untyped)} array} dim {paste(format_len(dim(untyped)), collapse = ' x ')}")
+    cli_text(
+      "{.field value}: {.cls {typeof(untyped)} array} dim {paste(format_len(dim(untyped)), collapse = ' x ')}"
+    )
     cli_verbatim(preview_array(untyped, max_items))
   } else if (inherits(untyped, "data.frame")) {
-    cli_text("{.field value}: {.cls data.frame} {format_len(nrow(untyped))} x {format_len(ncol(untyped))}")
+    cli_text(
+      "{.field value}: {.cls data.frame} {format_len(nrow(untyped))} x {format_len(ncol(untyped))}"
+    )
     cli_verbatim(preview_data_frame(untyped, max_items))
   } else if (is_list(untyped)) {
     len <- length(untyped)
@@ -489,13 +616,17 @@ print.typedr_value <- function(x, ...,
     len <- length(untyped)
     type <- typeof(untyped)
     if (len <= max_items) {
-      cli_text("{.field value}: {.cls {type}} [{format_len(len)}]
-        {preview_vec(untyped, n = max_items)}")
+      cli_text(
+        "{.field value}: {.cls {type}} [{format_len(len)}]
+        {preview_vec(untyped, n = max_items)}"
+      )
     } else {
       cli_text("{.field value}: {.cls {type}} [{format_len(len)}]")
       cli_text("{.field data}: {preview_vec(untyped, n = max_items)}")
       mark_truncated()
-      cli_text(col_grey(format_inline("{.emph # ... with {format_len(len - max_items)} more values}")))
+      cli_text(col_grey(format_inline(
+        "{.emph # ... with {format_len(len - max_items)} more values}"
+      )))
     }
   } else if (!isS4(untyped)) {
     cli_text("{.field value}: {col_blue(format(untyped))}")
@@ -509,9 +640,16 @@ print.typedr_value <- function(x, ...,
   meta <- c(
     "*" = sprintf(
       "{.field assertion}: %s",
-      if (!is_null(assertion)) format_inline("{.cls {expr_deparse(assertion)}}") else col_grey("<none>")
+      if (!is_null(assertion)) {
+        format_inline("{.cls {expr_deparse(assertion)}}")
+      } else {
+        col_grey("<none>")
+      }
     ),
-    "*" = sprintf("{.field const}: %s", if (const) col_red("TRUE") else col_grey("FALSE"))
+    "*" = sprintf(
+      "{.field const}: %s",
+      if (const) col_red("TRUE") else col_grey("FALSE")
+    )
     # "*" = format_inline("{.field class}: {.cls {paste(cls, collapse = ', ')}}")
   )
   cli_bullets(meta)
@@ -584,7 +722,8 @@ print_stats <- function(x = .Last.value) {
 #' @rdname print_typedr
 #' @export
 print_typedr <- function(
-  x = .Last.value, ...,
+  x = .Last.value,
+  ...,
   max_args = getOption("typedr.print.max_args", 8),
   fn_indent = getOption("typedr.print.fn_indent", 2),
   fn_wrap = getOption("typedr.print.fn_wrap", 60),
@@ -592,7 +731,8 @@ print_typedr <- function(
   fn_lineno = getOption("typedr.print.fn_lineno", FALSE),
   fn_color = getOption("typedr.print.fn_color", TRUE),
   highlight = getOption("typedr.print.highlight", vsc_dark_plus())
-) { # R/utils-print.R
+) {
+  # R/utils-print.R
   options(
     typedr.print.max_args = max_args,
     typedr.print.fn_indent = fn_indent,

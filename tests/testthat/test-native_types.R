@@ -214,16 +214,28 @@ test_that("`Array` works", {
 })
 
 test_that("`Data.frame` works", {
-  expect_equal(Data.frame()(data.frame(a = 1, b = 2L)), data.frame(a = 1, b = 2L))
+  expect_equal(
+    Data.frame()(data.frame(a = 1, b = 2L)),
+    data.frame(a = 1, b = 2L)
+  )
   expect_error(Data.frame()(1))
 
-  expect_equal(Data.frame(1)(data.frame(a = 1, b = 2L)), data.frame(a = 1, b = 2L))
+  expect_equal(
+    Data.frame(1)(data.frame(a = 1, b = 2L)),
+    data.frame(a = 1, b = 2L)
+  )
   expect_error(Data.frame(2)(data.frame(a = 1, b = 2L)))
 
-  expect_equal(Data.frame(, 2)(data.frame(a = 1, b = 2L)), data.frame(a = 1, b = 2L))
+  expect_equal(
+    Data.frame(, 2)(data.frame(a = 1, b = 2L)),
+    data.frame(a = 1, b = 2L)
+  )
   expect_error(Data.frame(, 1)(data.frame(a = 1, b = 2L)))
 
-  expect_equal(Data.frame(each = Double())(data.frame(a = 1, b = 2)), data.frame(a = 1, b = 2))
+  expect_equal(
+    Data.frame(each = Double())(data.frame(a = 1, b = 2)),
+    data.frame(a = 1, b = 2)
+  )
   expect_error(Data.frame(each = Double())(data.frame(a = 1, b = 2L)))
 
   expect_equal(Data.frame(null_ok = TRUE)(NULL), NULL)

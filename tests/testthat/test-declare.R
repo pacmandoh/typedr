@@ -44,7 +44,10 @@ test_that("check_arg works", {
   expect_equal(y, 3)
 
   expect_error(check_arg(x, Integer()), class = "typedr_type_error")
-  expect_error(check_arg(y, Integer(), .bind = TRUE), class = "typedr_type_error")
+  expect_error(
+    check_arg(y, Integer(), .bind = TRUE),
+    class = "typedr_type_error"
+  )
 })
 
 test_that("check_arg handles non-symbol argument expressions", {
@@ -80,7 +83,11 @@ test_that("unknown assertion headers use generic assertion mismatch class", {
 
 test_that("declare works", {
   expect_equal(declare("x", value = 1), 1, ignore_attr = TRUE)
-  expect_equal(declare("x", value = data.frame(a = 1)), data.frame(a = 1), ignore_attr = TRUE)
+  expect_equal(
+    declare("x", value = data.frame(a = 1)),
+    data.frame(a = 1),
+    ignore_attr = TRUE
+  )
 
   foobar_obj <- structure(1, class = c("foo", "bar"))
   expect_equal(declare("x", value = foobar_obj), foobar_obj, ignore_attr = TRUE)
@@ -96,7 +103,11 @@ test_that("declare works", {
     class = "typedr_initial_error"
   )
 
-  expect_equal(declare("x", Double(), value = 1, const = TRUE), 1, ignore_attr = TRUE)
+  expect_equal(
+    declare("x", Double(), value = 1, const = TRUE),
+    1,
+    ignore_attr = TRUE
+  )
   expect_equal(x, 1, ignore_attr = TRUE)
   expect_error(x <- 2, class = "typedr_constant_error")
 
@@ -105,8 +116,8 @@ test_that("declare works", {
     class = "typedr_initial_error"
   )
 
-  expect_equal(Double() ? x <- 1, 1, ignore_attr = TRUE)
-  expect_error(Double() ? x <- 1L, class = "typedr_initial_error")
+  expect_equal(Double()?x <- 1, 1, ignore_attr = TRUE)
+  expect_error(Double()?x <- 1L, class = "typedr_initial_error")
 })
 
 test_that("declare supports missing initial value", {
@@ -150,8 +161,8 @@ test_that("declare errors have structured classes", {
 })
 
 test_that("values are declared in separate environments", {
-  typedr::Integer() ? a
-  typedr::Integer() ? b
+  typedr::Integer()?a
+  typedr::Integer()?b
 
   a <- 1L
   b <- 2L

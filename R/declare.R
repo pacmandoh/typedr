@@ -34,8 +34,13 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
         "Return value does not satisfy the required {.cls Type()}.",
         x = "Expected {.cls {asset_nm}} return value, got {res_type}."
       ),
-      class = c("typedr_return_error", "typedr_check_output_error", "typedr_error"),
-      parent = val, call = caller_env()
+      class = c(
+        "typedr_return_error",
+        "typedr_check_output_error",
+        "typedr_error"
+      ),
+      parent = val,
+      call = caller_env()
     )
   }
   .output
@@ -75,34 +80,47 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
     assertion_expr <- enexpr(.assertion)
     dots_exprs <- enexprs(...)
 
-    f <- eval_bare(expr(
-      local(
-        {
-          val <- !!.arg
-          function(assigned_value) {
-            if (!is_missing(assigned_value)) {
-              # fix
-              tmp <- try_fetch(!!call2(assertion_expr, expr(assigned_value), !!!dots_exprs), error = identity)
-              arg_nm <- !!var_nm
-              if (inherits(tmp, "error")) {
-                tmp$call <- !!.assertion_expr
-                cli_abort(
-                  "Assigned value to `{.field {arg_nm}}` doesn't satisfy the assertion.",
-                  class = c("typedr_assign_error", "typedr_check_arg_error", "typedr_error"),
-                  parent = tmp, call = !!call
+    f <- eval_bare(
+      expr(
+        local(
+          {
+            val <- !!.arg
+            function(assigned_value) {
+              if (!is_missing(assigned_value)) {
+                # fix
+                tmp <- try_fetch(
+                  !!call2(assertion_expr, expr(assigned_value), !!!dots_exprs),
+                  error = identity
                 )
+                arg_nm <- !!var_nm
+                if (inherits(tmp, "error")) {
+                  tmp$call <- !!.assertion_expr
+                  cli_abort(
+                    "Assigned value to `{.field {arg_nm}}` doesn't satisfy the assertion.",
+                    class = c(
+                      "typedr_assign_error",
+                      "typedr_check_arg_error",
+                      "typedr_error"
+                    ),
+                    parent = tmp,
+                    call = !!call
+                  )
+                }
+                val <<- tmp
               }
-              val <<- tmp
+              val
             }
-            val
-          }
-        },
-        envir = !!call
-      )
-    ), env = call)
+          },
+          envir = !!call
+        )
+      ),
+      env = call
+    )
 
     attr(f, "srcref") <- NULL
-    if (env_has(call, var_nm, inherit = FALSE)) env_unbind(call, var_nm, inherit = FALSE)
+    if (env_has(call, var_nm, inherit = FALSE)) {
+      env_unbind(call, var_nm, inherit = FALSE)
+    }
     env_bind_active(call, !!var_nm := f)
   }
 
@@ -113,7 +131,8 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
     cli_abort(
       "Invalid {.cls Type()} of `{.field {var_nm}}` to `{.field {fun_nm}()}`.",
       class = c("typedr_type_error", "typedr_check_arg_error", "typedr_error"),
-      parent = val, call = call
+      parent = val,
+      call = call
     )
   }
 
@@ -154,7 +173,11 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
       val$call <- assertion_expr
       cli_abort(
         "Invalid initial value for `{.field {x}}`.",
-        class = c("typedr_initial_error", "typedr_declare_error", "typedr_error"),
+        class = c(
+          "typedr_initial_error",
+          "typedr_declare_error",
+          "typedr_error"
+        ),
         parent = val
       )
     }
@@ -167,46 +190,65 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
   }
 
   if (const) {
-    f <- eval_bare(expr(
-      local({
-        val <- !!value
-        function(assigned_value) {
-          if (!is_missing(assigned_value)) {
-            cli_abort(
-              "Can't assign to a constant `{.field {x}}`.",
-              class = c("typedr_constant_error", "typedr_declare_error", "typedr_error")
-            )
-          }
-          val
-        }
-      })
-    ), env = f_env)
-  } else {
-    f <- eval_bare(expr(
-      local({
-        val <- !!value
-        function(assigned_value) {
-          if (!is_missing(assigned_value)) {
-            tmp <- try_fetch(!!call2(assertion_quoted, expr(assigned_value)), error = identity)
-            rt_assertion <- attr(val, "typedr_assertion")
-            if (inherits(tmp, "error")) {
-              tmp$call <- rt_assertion
+    f <- eval_bare(
+      expr(
+        local({
+          val <- !!value
+          function(assigned_value) {
+            if (!is_missing(assigned_value)) {
               cli_abort(
-                "Assigned value to `{.field {x}}` doesn't satisfy the assertion.",
-                class = c("typedr_assign_error", "typedr_declare_error", "typedr_error"),
-                parent = tmp
+                "Can't assign to a constant `{.field {x}}`.",
+                class = c(
+                  "typedr_constant_error",
+                  "typedr_declare_error",
+                  "typedr_error"
+                )
               )
             }
-            val <<- .apply_typedr_attrs(tmp, x, rt_assertion, const = FALSE) # R/utils.R
+            val
           }
-          val
-        }
-      })
-    ), env = f_env)
+        })
+      ),
+      env = f_env
+    )
+  } else {
+    f <- eval_bare(
+      expr(
+        local({
+          val <- !!value
+          function(assigned_value) {
+            if (!is_missing(assigned_value)) {
+              tmp <- try_fetch(
+                !!call2(assertion_quoted, expr(assigned_value)),
+                error = identity
+              )
+              rt_assertion <- attr(val, "typedr_assertion")
+              if (inherits(tmp, "error")) {
+                tmp$call <- rt_assertion
+                cli_abort(
+                  "Assigned value to `{.field {x}}` doesn't satisfy the assertion.",
+                  class = c(
+                    "typedr_assign_error",
+                    "typedr_declare_error",
+                    "typedr_error"
+                  ),
+                  parent = tmp
+                )
+              }
+              val <<- .apply_typedr_attrs(tmp, x, rt_assertion, const = FALSE) # R/utils.R
+            }
+            val
+          }
+        })
+      ),
+      env = f_env
+    )
   }
 
   attr(f, "srcref") <- NULL # so it's not set to old definition
-  if (env_has(call, x, inherit = FALSE)) env_unbind(call, x, inherit = FALSE)
+  if (env_has(call, x, inherit = FALSE)) {
+    env_unbind(call, x, inherit = FALSE)
+  }
   env_bind_active(call, !!x := f)
 
   return(invisible(value))

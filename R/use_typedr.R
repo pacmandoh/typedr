@@ -22,8 +22,14 @@ use_typedr <- function() {
     "R/%s-package.R",
     desc::desc(usethis::proj_get())$get_field("Package")
   )
-  if (!file.exists(pkg_doc_path)) usethis::use_package_doc(open = FALSE)
-  usethis::use_import_from("typedr", getNamespaceExports("typedr"), load = FALSE)
+  if (!file.exists(pkg_doc_path)) {
+    usethis::use_package_doc(open = FALSE)
+  }
+  usethis::use_import_from(
+    "typedr",
+    getNamespaceExports("typedr"),
+    load = FALSE
+  )
   invisible(NULL)
 }
 # nocov end

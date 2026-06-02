@@ -142,7 +142,8 @@
       n <- length(x)
       if (n == 2) {
         rhs_i <- x[[2]]
-        if (.is_assign_stmt(rhs_i)) { # R/utils.R
+        if (.is_assign_stmt(rhs_i)) {
+          # R/utils.R
           const <- is_call(rhs_i[[2]], "(")
           nm <- .sym_name(if (const) rhs_i[[c(2, 2)]] else rhs_i[[2]])
           return(call2("declare", nm, value = rhs_i[[3]], const = const))
@@ -151,7 +152,8 @@
       }
       lhs_i <- x[[2]]
       rhs_i <- x[[3]]
-      if (.is_assign_stmt(rhs_i)) { # R/utils.R
+      if (.is_assign_stmt(rhs_i)) {
+        # R/utils.R
         const <- is_call(rhs_i[[2]], "(")
         nm <- .sym_name(if (const) rhs_i[[c(2, 2)]] else rhs_i[[2]])
         return(call2("declare", nm, lhs_i, value = rhs_i[[3]], const = const))
@@ -169,41 +171,70 @@
     args_are_annotated <- any(annotated_fmls_lgl)
 
     if (args_are_annotated) {
-      annotations <- annotations_attr <- lapply(fmls[annotated_fmls_lgl], function(z) z[[length(z)]])
+      annotations <- annotations_attr <- lapply(
+        fmls[annotated_fmls_lgl],
+        function(z) z[[length(z)]]
+      )
 
       bind_lgl <- vapply(annotations, function(z) is_call(z, "+"), logical(1))
       lazy_lgl <- vapply(annotations, function(z) is_call(z, "~"), logical(1))
 
       annotations_attr[bind_lgl] <- lapply(annotations_attr[bind_lgl], `[[`, 2)
-      annotations[bind_lgl | lazy_lgl] <- lapply(annotations[bind_lgl | lazy_lgl], `[[`, 2)
+      annotations[bind_lgl | lazy_lgl] <- lapply(
+        annotations[bind_lgl | lazy_lgl],
+        `[[`,
+        2
+      )
 
-      arg_assertion_factory_calls <- Map(function(arg_nm, ann, bind, lazy) {
-        if (identical(arg_nm, "...")) {
-          if (bind) {
-            cli_abort(
-              "Can't bind `{.field {{...}}}` with `{.field ?+}`.",
-              class = c("typedr_dots_bind_error", "typedr_qmark_error", "typedr_error"),
-              call = qmark_error_call
+      arg_assertion_factory_calls <- Map(
+        function(arg_nm, ann, bind, lazy) {
+          if (identical(arg_nm, "...")) {
+            if (bind) {
+              cli_abort(
+                "Can't bind `{.field {{...}}}` with `{.field ?+}`.",
+                class = c(
+                  "typedr_dots_bind_error",
+                  "typedr_qmark_error",
+                  "typedr_error"
+                ),
+                call = qmark_error_call
+              )
+            }
+            is_dots <- is_call(ann, "Dots")
+            if (is_dots) {
+              ann[[1]] <- expr(Dots)
+            }
+            dots_sym <- sym("...")
+            container <- if (lazy) {
+              call2("enexprs", dots_sym)
+            } else {
+              call2("list", dots_sym)
+            }
+            return(
+              if (is_dots) {
+                expr(check_arg(!!container, !!ann))
+              } else if (lazy) {
+                expr(check_arg(!!container, List(each = !!ann)))
+              } else {
+                expr(check_arg(!!container, List(each = !!ann)))
+              }
             )
           }
-          is_dots <- is_call(ann, "Dots")
-          if (is_dots) ann[[1]] <- expr(Dots)
-          dots_sym <- sym("...")
-          container <- if (lazy) call2("enexprs", dots_sym) else call2("list", dots_sym)
-          return(if (is_dots) {
-            expr(check_arg(!!container, !!ann))
-          } else if (lazy) {
-            expr(check_arg(!!container, List(each = !!ann)))
+          if (bind) {
+            return(expr(check_arg(!!sym(arg_nm), !!ann, .bind = TRUE)))
+          }
+          target <- if (lazy) {
+            expr(enexpr(!!sym(arg_nm)))
           } else {
-            expr(check_arg(!!container, List(each = !!ann)))
-          })
-        }
-        if (bind) {
-          return(expr(check_arg(!!sym(arg_nm), !!ann, .bind = TRUE)))
-        }
-        target <- if (lazy) expr(enexpr(!!sym(arg_nm))) else expr(!!sym(arg_nm))
-        expr(check_arg(!!target, !!ann))
-      }, nms[annotated_fmls_lgl], annotations, bind_lgl, lazy_lgl)
+            expr(!!sym(arg_nm))
+          }
+          expr(check_arg(!!target, !!ann))
+        },
+        nms[annotated_fmls_lgl],
+        annotations,
+        bind_lgl,
+        lazy_lgl
+      )
 
       fmls[annotated_fmls_lgl] <- lapply(fmls[annotated_fmls_lgl], function(z) {
         if (length(z) == 2) expr(expr = ) else z[[2]]
@@ -215,7 +246,8 @@
     }
 
     # Insert check_output() if a return type is provided
-    if (lhs_is_assignment <- .is_assign_stmt(lhs)) { # R/utils.R
+    if (lhs_is_assignment <- .is_assign_stmt(lhs)) {
+      # R/utils.R
       return_assertion_factory <- lhs[[3]]
     } else if (lhs_is_qm <- is_call(lhs, "?")) {
       return_assertion_factory <- lhs[[c(3, 3)]]
@@ -241,7 +273,10 @@
       body <- modify_return_calls(body)
       last_call <- body[[length(body)]]
       if (!is_call(last_call) || !is_call(last_call, "return")) {
-        body[[length(body)]] <- expr(check_output(!!last_call, !!return_assertion_factory))
+        body[[length(body)]] <- expr(check_output(
+          !!last_call,
+          !!return_assertion_factory
+        ))
       }
     }
 
@@ -271,10 +306,14 @@
   # ? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # ? CASE 2: `?` maps to declare/help outside of function-definition RHS
   if (unary_qm_lgl) {
-    if (.is_assign_stmt(rhs)) { # R/utils.R
+    if (.is_assign_stmt(rhs)) {
+      # R/utils.R
       const <- is_call(rhs[[2]], "(")
       nm <- .sym_name(if (const) rhs[[c(2, 2)]] else rhs[[2]])
-      return(eval_bare(call2("declare", nm, value = rhs[[3]], const = const), env = call))
+      return(eval_bare(
+        call2("declare", nm, value = rhs[[3]], const = const),
+        env = call
+      ))
     }
     if (is_symbol(rhs)) {
       return(eval_bare(call2("help", as_label(rhs)), env = call))
@@ -286,7 +325,11 @@
           or put `{.field ?}` before or in `function(...)`.",
         x = "Got `rhs`: `{as_label(rhs)}` (only a symbol like `? mean` is allowed here)."
       ),
-      class = c("typedr_value_context_error", "typedr_qmark_error", "typedr_error"),
+      class = c(
+        "typedr_value_context_error",
+        "typedr_qmark_error",
+        "typedr_error"
+      ),
       call = qmark_error_call
     )
   } else {
@@ -303,10 +346,14 @@
     # }
 
     # * 1) assertion ? (name) <- value  /  assertion ? name <- value
-    if (.is_assign_stmt(rhs)) { # R/utils.R
+    if (.is_assign_stmt(rhs)) {
+      # R/utils.R
       const <- is_call(rhs[[2]], "(")
       nm <- .sym_name(if (const) rhs[[c(2, 2)]] else rhs[[2]])
-      return(eval_bare(call2("declare", nm, lhs, value = rhs[[3]], const = const), env = call))
+      return(eval_bare(
+        call2("declare", nm, lhs, value = rhs[[3]], const = const),
+        env = call
+      ))
     }
 
     # * 2) assertion ? name -> declare(name, assertion)
@@ -320,7 +367,8 @@
       cli_abort(
         "Invalid assertion on the left of `{.field ?}`.",
         class = c("typedr_lhs_error", "typedr_qmark_error", "typedr_error"),
-        parent = assertion_fn, call = qmark_error_call
+        parent = assertion_fn,
+        call = qmark_error_call
       )
     }
 
@@ -328,8 +376,13 @@
     if (inherits(value, "error")) {
       cli_abort(
         "Failed to evaluate the right-hand side expression.",
-        class = c("typedr_rhs_eval_error", "typedr_qmark_error", "typedr_error"),
-        parent = value, call = qmark_error_call
+        class = c(
+          "typedr_rhs_eval_error",
+          "typedr_qmark_error",
+          "typedr_error"
+        ),
+        parent = value,
+        call = qmark_error_call
       )
     }
 

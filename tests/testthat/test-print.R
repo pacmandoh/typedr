@@ -13,7 +13,11 @@ capture_typedr_cli <- function(expr) {
       append(cli::format_inline(..., .envir = parent.frame()))
     },
     cli_bullets = function(text, ...) {
-      append(unname(cli::format_inline(text, .envir = parent.frame(), collapse = FALSE)))
+      append(unname(cli::format_inline(
+        text,
+        .envir = parent.frame(),
+        collapse = FALSE
+      )))
     },
     cli_verbatim = function(text, ...) {
       append(text)
@@ -32,7 +36,7 @@ test_that("typedr function printing exposes the compact public sections", {
   )
   on.exit(options(old), add = TRUE)
 
-  f <- Character() ? function(a1 = 1 ? Double(), c = ? Double(), d) {
+  f <- Character()?function(a1 = 1?Double(), c = ?Double(), d) {
     a1 + c + d
   }
 
@@ -57,7 +61,7 @@ test_that("typedr function printing folds long argument lists", {
   )
   on.exit(options(old), add = TRUE)
 
-  f <- ? function(a = ? Double(), b = ? Double(), c = ? Double()) {
+  f <- ?function(a = ?Double(), b = ?Double(), c = ?Double()) {
     a + b + c
   }
 
@@ -142,11 +146,15 @@ test_that("typedr value printing handles shaped and non-atomic values", {
   expect_match(many_col_out, "more rows", fixed = TRUE)
   expect_match(many_col_out, "print_whole_value()", fixed = TRUE)
 
-  declare("x_print_list", List(), value = list(
-    a = 1,
-    b = c("x", "y"),
-    nested = list(ok = TRUE, when = as.Date("2026-06-01"))
-  ))
+  declare(
+    "x_print_list",
+    List(),
+    value = list(
+      a = 1,
+      b = c("x", "y"),
+      nested = list(ok = TRUE, when = as.Date("2026-06-01"))
+    )
+  )
   list_out <- capture_typedr_cli(print(x_print_list))
   expect_match(list_out, "value: <list> [3]", fixed = TRUE)
   expect_match(list_out, "* a: <double> [1]", fixed = TRUE)
@@ -166,17 +174,32 @@ test_that("typedr value printing keeps classed atomic values readable", {
   expect_match(factor_out, "data: low, high, low", fixed = TRUE)
   expect_match(factor_out, "levels:", fixed = TRUE)
 
-  declare("x_print_date", Date(), value = as.Date(c("2026-06-01", "2026-06-02")))
+  declare(
+    "x_print_date",
+    Date(),
+    value = as.Date(c("2026-06-01", "2026-06-02"))
+  )
   date_out <- capture_typedr_cli(print(x_print_date))
   expect_match(date_out, "value: <Date> [2]", fixed = TRUE)
   expect_match(date_out, "2026-06-01", fixed = TRUE)
 
-  declare("x_print_time", Time(), value = as.POSIXct("2026-06-01 12:34:56", tz = "UTC"))
+  declare(
+    "x_print_time",
+    Time(),
+    value = as.POSIXct("2026-06-01 12:34:56", tz = "UTC")
+  )
   time_out <- capture_typedr_cli(print(x_print_time))
   expect_match(time_out, "value: <POSIXct> [1]", fixed = TRUE)
 
-  declare("x_print_factor_long", Factor(), value = factor(rep(c("low", "high"), 4)))
-  factor_long_out <- capture_typedr_cli(print(x_print_factor_long, max_items = 3))
+  declare(
+    "x_print_factor_long",
+    Factor(),
+    value = factor(rep(c("low", "high"), 4))
+  )
+  factor_long_out <- capture_typedr_cli(print(
+    x_print_factor_long,
+    max_items = 3
+  ))
   expect_match(factor_long_out, "value: <factor> [8]", fixed = TRUE)
   expect_match(factor_long_out, "# ... with 5 more values", fixed = TRUE)
   expect_match(factor_long_out, "print_whole_value()", fixed = TRUE)
@@ -221,7 +244,11 @@ test_that("data values use default foreground color", {
   old <- options(cli.num_colors = 256)
   on.exit(options(old), add = TRUE)
 
-  declare("x_print_plain_data", Factor(), value = factor(rep(c("low", "high"), 4)))
+  declare(
+    "x_print_plain_data",
+    Factor(),
+    value = factor(rep(c("low", "high"), 4))
+  )
   out <- capture_typedr_cli(print(x_print_plain_data, max_items = 3))
 
   expect_match(out, "\033\\[[0-9;]*mdata\033\\[[0-9;]*m: low, high, low")
@@ -247,7 +274,7 @@ test_that("typedr function printing handles missing metadata and helper wrappers
   expect_match(plain_out, "<typedr function>", fixed = TRUE)
   expect_match(plain_out, "Return: <Any()>", fixed = TRUE)
 
-  f <- ? function(a = ? Double(), b = ? Double(), c = ? Double()) {
+  f <- ?function(a = ?Double(), b = ?Double(), c = ?Double()) {
     a + b + c
   }
 
@@ -311,14 +338,22 @@ test_that("typedr value printing covers truncated matrices and flattened arrays"
   old <- options(cli.num_colors = 1)
   on.exit(options(old), add = TRUE)
 
-  declare("x_print_big_matrix", Matrix(), value = matrix(seq_len(100), nrow = 10))
+  declare(
+    "x_print_big_matrix",
+    Matrix(),
+    value = matrix(seq_len(100), nrow = 10)
+  )
   big_matrix_out <- capture_typedr_cli(print(x_print_big_matrix, max_items = 4))
   expect_match(big_matrix_out, "value: <integer matrix> 10 x 10", fixed = TRUE)
   expect_match(big_matrix_out, "more rows", fixed = TRUE)
   expect_match(big_matrix_out, "more cols", fixed = TRUE)
   expect_match(big_matrix_out, "print_whole_value()", fixed = TRUE)
 
-  declare("x_print_flat_array", Array(), value = array(seq_len(20), dim = c(20)))
+  declare(
+    "x_print_flat_array",
+    Array(),
+    value = array(seq_len(20), dim = c(20))
+  )
   flat_array_out <- capture_typedr_cli(print(x_print_flat_array, max_items = 5))
   expect_match(flat_array_out, "value: <integer array> dim 20", fixed = TRUE)
   expect_match(flat_array_out, "preview: flattened values", fixed = TRUE)
@@ -422,7 +457,10 @@ test_that("pretty function formatting covers fallback highlighting and alternate
 
 test_that("internal highlighting helpers handle empty input and no-op paths", {
   expect_identical(.highlight_typedr_basic(character()), character())
-  expect_identical(.highlight_typedr_basic("plain_text", style = list()), "plain_text")
+  expect_identical(
+    .highlight_typedr_basic("plain_text", style = list()),
+    "plain_text"
+  )
   expect_identical(
     .highlight_typedr_basic(
       c("# comment", "(", "NULL", "mean(1)"),
@@ -433,11 +471,22 @@ test_that("internal highlighting helpers handle empty input and no-op paths", {
         bracket = list(function(x) paste0("bracket:", x))
       )
     ),
-    c("comment:# comment", "bracket:(", "null:NULL", "call:meanbracket:(1bracket:)")
+    c(
+      "comment:# comment",
+      "bracket:(",
+      "null:NULL",
+      "call:meanbracket:(1bracket:)"
+    )
   )
   expect_identical(.color_symbol_formals("123", style = vsc_dark_plus()), "123")
-  expect_identical(.color_symbol_formals(character(), style = vsc_dark_plus()), character())
-  expect_identical(.color_symbol_formals("x <- 1", style = vsc_dark_plus()), "x <- 1")
+  expect_identical(
+    .color_symbol_formals(character(), style = vsc_dark_plus()),
+    character()
+  )
+  expect_identical(
+    .color_symbol_formals("x <- 1", style = vsc_dark_plus()),
+    "x <- 1"
+  )
   expect_identical(.adjust_indent("  x", to = 4, from = 4), "  x")
 })
 
@@ -445,7 +494,7 @@ test_that("print_stats emits function statistics", {
   old <- options(cli.num_colors = 1)
   on.exit(options(old), add = TRUE)
 
-  f <- ? function(x = ? Double(), y = 2, ...) {
+  f <- ?function(x = ?Double(), y = 2, ...) {
     msg <- "value"
     if (TRUE) {
       return(x + y)
@@ -469,7 +518,7 @@ test_that("print_stats emits function statistics", {
   capture_typedr_cli(ret <- print_stats(f))
   expect_identical(ret, f)
 
-  typed_return <- Double() ? function(x = ? Double()) {
+  typed_return <- Double()?function(x = ?Double()) {
     1.5
   }
   typed_return_out <- capture_typedr_cli(print_stats(typed_return))
@@ -523,9 +572,20 @@ test_that("warn_once warns, tips, and suppresses repeated ids", {
   )
   expect_silent(.warn_once("unit_warn_once", c("!" = "careful"), type = "warn"))
 
-  out <- capture_typedr_cli(.warn_once("unit_tip_once", c("i" = "tip"), type = "tips"))
+  out <- capture_typedr_cli(.warn_once(
+    "unit_tip_once",
+    c("i" = "tip"),
+    type = "tips"
+  ))
   expect_match(out, "tip", fixed = TRUE)
-  expect_equal(capture_typedr_cli(.warn_once("unit_tip_once", c("i" = "tip"), type = "tips")), "")
+  expect_equal(
+    capture_typedr_cli(.warn_once(
+      "unit_tip_once",
+      c("i" = "tip"),
+      type = "tips"
+    )),
+    ""
+  )
 })
 
 test_that("typedr value printing covers classed, shaped, nested, and S4 edge cases", {
@@ -537,58 +597,91 @@ test_that("typedr value printing covers classed, shaped, nested, and S4 edge cas
   expect_match(empty_factor_out, "value: <factor> [0]", fixed = TRUE)
   expect_match(empty_factor_out, "data: c()", fixed = TRUE)
 
-  declare("x_print_long_time", Time(), value = as.POSIXct("2026-06-01", tz = "UTC") + 0:6)
+  declare(
+    "x_print_long_time",
+    Time(),
+    value = as.POSIXct("2026-06-01", tz = "UTC") + 0:6
+  )
   long_time_out <- capture_typedr_cli(print(x_print_long_time, max_items = 3))
   expect_match(long_time_out, "value: <POSIXct> [7]", fixed = TRUE)
   expect_match(long_time_out, "more values", fixed = TRUE)
 
-  declare("x_print_empty_matrix", Matrix(), value = matrix(numeric(), nrow = 0, ncol = 2))
+  declare(
+    "x_print_empty_matrix",
+    Matrix(),
+    value = matrix(numeric(), nrow = 0, ncol = 2)
+  )
   empty_matrix_out <- capture_typedr_cli(print(x_print_empty_matrix))
   expect_match(empty_matrix_out, "value: <double matrix> 0 x 2", fixed = TRUE)
   expect_match(empty_matrix_out, "[,1]", fixed = TRUE)
 
-  declare("x_print_nested_long_list", List(), value = list(
-    nested = list(a = 1, b = 2, c = 3),
-    tail = 4,
-    extra = 5
+  declare(
+    "x_print_nested_long_list",
+    List(),
+    value = list(
+      nested = list(a = 1, b = 2, c = 3),
+      tail = 4,
+      extra = 5
+    )
+  )
+  nested_out <- capture_typedr_cli(print(
+    x_print_nested_long_list,
+    max_items = 1
   ))
-  nested_out <- capture_typedr_cli(print(x_print_nested_long_list, max_items = 1))
   expect_match(nested_out, "* nested: <list> [3]", fixed = TRUE)
   expect_match(nested_out, "more elements", fixed = TRUE)
   expect_match(nested_out, "print_whole_value()", fixed = TRUE)
 
-  declare("x_print_list_summaries", List(), value = list(
-    factor = factor("a"),
-    time = as.POSIXct("2026-06-01", tz = "UTC"),
-    matrix = matrix(1:4, nrow = 2),
-    array = array(1:8, dim = c(2, 2, 2)),
-    df = data.frame(a = 1),
-    empty = character(),
-    long = letters[1:5],
-    nested = list(child = list(grandchild = 1))
+  declare(
+    "x_print_list_summaries",
+    List(),
+    value = list(
+      factor = factor("a"),
+      time = as.POSIXct("2026-06-01", tz = "UTC"),
+      matrix = matrix(1:4, nrow = 2),
+      array = array(1:8, dim = c(2, 2, 2)),
+      df = data.frame(a = 1),
+      empty = character(),
+      long = letters[1:5],
+      nested = list(child = list(grandchild = 1))
+    )
+  )
+  summary_out <- capture_typedr_cli(print(
+    x_print_list_summaries,
+    max_items = 10
   ))
-  summary_out <- capture_typedr_cli(print(x_print_list_summaries, max_items = 10))
   expect_match(summary_out, "* factor: <factor> [1]", fixed = TRUE)
   expect_match(summary_out, "* time: <POSIXct> [1]", fixed = TRUE)
   expect_match(summary_out, "* matrix: <integer matrix> 2 x 2", fixed = TRUE)
-  expect_match(summary_out, "* array: <integer array> dim 2 x 2 x 2", fixed = TRUE)
+  expect_match(
+    summary_out,
+    "* array: <integer array> dim 2 x 2 x 2",
+    fixed = TRUE
+  )
   expect_match(summary_out, "* df: <data.frame> 1 x 1", fixed = TRUE)
   expect_match(summary_out, "data: c()", fixed = TRUE)
   expect_match(summary_out, '"a", "b", "c", "d", "e"', fixed = TRUE)
   expect_match(summary_out, "* child: <list> [1]", fixed = TRUE)
 
   declare("x_print_long_vector_list", List(), value = list(long = letters[1:5]))
-  long_vector_list_out <- capture_typedr_cli(print(x_print_long_vector_list, max_items = 3))
+  long_vector_list_out <- capture_typedr_cli(print(
+    x_print_long_vector_list,
+    max_items = 3
+  ))
   expect_match(long_vector_list_out, '"a", "b", "c"', fixed = TRUE)
   expect_match(long_vector_list_out, "with 2 more values", fixed = TRUE)
 
-  declare("x_print_mixed_df", Data.frame(), value = data.frame(
-    when = as.POSIXct("2026-06-01", tz = "UTC"),
-    day = as.Date("2026-06-02"),
-    raw = as.raw(1),
-    complex = 1 + 2i,
-    missing = NA_real_
-  ))
+  declare(
+    "x_print_mixed_df",
+    Data.frame(),
+    value = data.frame(
+      when = as.POSIXct("2026-06-01", tz = "UTC"),
+      day = as.Date("2026-06-02"),
+      raw = as.raw(1),
+      complex = 1 + 2i,
+      missing = NA_real_
+    )
+  )
   mixed_df_out <- capture_typedr_cli(print(x_print_mixed_df))
   expect_match(mixed_df_out, "<dttm>", fixed = TRUE)
   expect_match(mixed_df_out, "<date>", fixed = TRUE)
@@ -596,8 +689,15 @@ test_that("typedr value printing covers classed, shaped, nested, and S4 edge cas
   expect_match(mixed_df_out, "<complex>", fixed = TRUE)
   expect_match(mixed_df_out, "NA", fixed = TRUE)
 
-  declare("x_print_vector_slice_array", Array(), value = array(seq_len(4), dim = c(2, 1, 2)))
-  vector_slice_out <- capture_typedr_cli(print(x_print_vector_slice_array, max_items = 3))
+  declare(
+    "x_print_vector_slice_array",
+    Array(),
+    value = array(seq_len(4), dim = c(2, 1, 2))
+  )
+  vector_slice_out <- capture_typedr_cli(print(
+    x_print_vector_slice_array,
+    max_items = 3
+  ))
   expect_match(vector_slice_out, "preview: slice [, , 1]", fixed = TRUE)
 
   setClass("TypedrPrintS4", slots = c(x = "numeric"))
