@@ -1,6 +1,7 @@
+# fmt: skip file
 test_that("#47", {
-  f <- typedr::Integer()?function() {
-    typedr::Double()?foo <- local({
+  f <- typedr::Integer() ? function() {
+    typedr::Double() ? foo <- local({
       return(as.double(1))
     })
     as.integer(1)

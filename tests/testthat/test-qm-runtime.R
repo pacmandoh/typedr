@@ -1,5 +1,6 @@
+# fmt: skip file
 test_that("lazy argument annotations check expressions rather than values", {
-  f <- ?function(x = ?~ Symbol()) {
+  f <- ? function(x = ?~ Symbol()) {
     TRUE
   }
 
@@ -8,12 +9,12 @@ test_that("lazy argument annotations check expressions rather than values", {
 })
 
 test_that("bound argument annotations keep checking reassignment", {
-  f_ok <- ?function(x = 1?+Double()) {
+  f_ok <- ? function(x = 1 ?+ Double()) {
     x <- 2
     x
   }
 
-  f_bad <- ?function(x = 1?+Double()) {
+  f_bad <- ? function(x = 1 ?+ Double()) {
     x <- 2L
     x
   }
@@ -23,7 +24,7 @@ test_that("bound argument annotations keep checking reassignment", {
 })
 
 test_that("regular dots annotations check each supplied value", {
-  f <- ?function(... = ?Double()) {
+  f <- ? function(... = ? Double()) {
     length(list(...))
   }
 
@@ -32,7 +33,7 @@ test_that("regular dots annotations check each supplied value", {
 })
 
 test_that("lazy dots annotations check supplied expressions", {
-  f <- ?function(... = ?~ Symbol()) {
+  f <- ? function(... = ?~ Symbol()) {
     length(enexprs(...))
   }
 
@@ -41,7 +42,7 @@ test_that("lazy dots annotations check supplied expressions", {
 })
 
 test_that("Dots annotations check the dots container", {
-  f <- ?function(... = ?Dots(2, each = Double())) {
+  f <- ? function(... = ? Dots(2, each = Double())) {
     sum(...)
   }
 
@@ -51,7 +52,7 @@ test_that("Dots annotations check the dots container", {
 })
 
 test_that("typed return checks cover implicit and explicit returns", {
-  implicit_ok <- Integer()?function(x = ?Logical()) {
+  implicit_ok <- Integer() ? function(x = ? Logical()) {
     if (x) {
       1L
     } else {
@@ -59,7 +60,7 @@ test_that("typed return checks cover implicit and explicit returns", {
     }
   }
 
-  explicit_bad <- Integer()?function() {
+  explicit_bad <- Integer() ? function() {
     if (TRUE) {
       return(1)
     }
@@ -73,7 +74,7 @@ test_that("typed return checks cover implicit and explicit returns", {
 
 test_that("function assignment with typed return stores typedr metadata", {
   expect_no_error(
-    f_runtime_meta <- Double()?function(x = ?Double()) {
+    f_runtime_meta <- Double() ? function(x = ? Double()) {
       x + 1
     }
   )
@@ -83,4 +84,54 @@ test_that("function assignment with typed return stores typedr metadata", {
   expect_identical(attr(f_runtime_meta, "arg_types")$x, expr(Double()))
   expect_equal(f_runtime_meta(1), 2)
   expect_error(f_runtime_meta(1L), class = "typedr_type_error")
+})
+
+test_that("missing typed function arguments fail before assertion evaluation", {
+  f <- ? function(
+    id = ? Integer() | Character(),
+    amount = ? Double(1)
+  ) {
+    TRUE
+  }
+
+  expect_warning(
+    expect_error(f(), class = "typedr_missing_argument_error"),
+    NA
+  )
+  expect_warning(
+    expect_error(f(id = 1L), class = "typedr_missing_argument_error"),
+    NA
+  )
+})
+
+test_that("missing dependent arguments fail before assertion evaluation", {
+  f <- ? function(
+    a1 = 1L ? Integer(),
+    a2 = ? a1:Integer() ~ Double()
+  ) {
+    TRUE
+  }
+
+  expect_warning(
+    expect_error(f(), class = "typedr_missing_argument_error"),
+    NA
+  )
+  expect_warning(
+    expect_error(f(a1 = 1L), class = "typedr_missing_argument_error"),
+    NA
+  )
+})
+
+test_that("missing dependent arguments support warning severity", {
+  f <- ? function(
+    a1 = 1L ? Integer(),
+    a2 = ? a1:Integer() ~ Warning(Double())
+  ) {
+    TRUE
+  }
+
+  expect_warning(
+    expect_true(f()),
+    class = "typedr_dependency_warning"
+  )
 })

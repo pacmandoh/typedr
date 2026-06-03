@@ -2,4 +2,12 @@
 exclude = [
   "README.Rmd",
   "vignettes/*.Rmd",
+  "tests/testthat/test-47.R",
+  "tests/testthat/test-assertion_combinators.R",
+  "tests/testthat/test-declare.R",
+  "tests/testthat/test-dependent_args.R",
+  "tests/testthat/test-print.R",
+  "tests/testthat/test-qm.R",
+  "tests/testthat/test-qm-runtime.R",
+  "tests/testthat/test-stress.R",
 ]
