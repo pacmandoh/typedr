@@ -4,11 +4,12 @@ print.assertion_factory <- function(x, ...) {
   fmls <- fn_fmls(type_fn)
   fmls <- fmls[setdiff(names(fmls), c("value", "..."))]
 
-  cli_text("{.strong {.cls <typedr type factory>}}")
-  pretty_fn(
+  cli_text("{.strong {col_grey('<typedr type factory>')}}")
+  fn_color <- getOption("typedr.print.fn_color", TRUE)
+  fn_out <- pretty_fn(
     x,
     lineno = FALSE,
-    color = getOption("typedr.print.fn_color", TRUE),
+    color = fn_color,
     wrap = getOption("typedr.print.fn_wrap", 60),
     indent = getOption("typedr.print.factory_fn_indent", 4),
     limit_lines = getOption(
@@ -41,20 +42,30 @@ print.assertion_factory <- function(x, ...) {
     cli_text("{.strong Arguments:} {col_grey('<none>')}")
   }
 
+  .typedr_print_fn_meta(
+    truncated = attr(fn_out, "typedr_fn_truncated", exact = TRUE),
+    color = attr(fn_out, "typedr_fn_color", exact = TRUE)
+  )
+
   invisible(x)
 }
 
 #' @export
 print.typedr_assertion <- function(x, ...) {
-  cli_text("{.strong {.cls <typedr type>}}")
-  pretty_fn(
+  cli_text("{.strong {col_grey('<typedr type>')}}")
+  fn_color <- getOption("typedr.print.fn_color", TRUE)
+  fn_out <- pretty_fn(
     x,
     lineno = FALSE,
-    color = getOption("typedr.print.fn_color", TRUE),
+    color = fn_color,
     wrap = getOption("typedr.print.fn_wrap", 60),
     indent = getOption("typedr.print.fn_indent", 2),
     limit_lines = getOption("typedr.print.fn_limit_lines", 20),
     style = getOption("typedr.print.highlight", vsc_dark_plus())
+  )
+  .typedr_print_fn_meta(
+    truncated = attr(fn_out, "typedr_fn_truncated", exact = TRUE),
+    color = attr(fn_out, "typedr_fn_color", exact = TRUE)
   )
   invisible(x)
 }
@@ -77,9 +88,10 @@ print.typedr <- function(x, ...) {
     expr_deparse(return_type)
   }
   arg_types <- attr(x, "arg_types", exact = TRUE) %||% list()
+  args_truncated <- length(arg_types) > max_args
 
   cli_text("{.strong {col_grey('<typedr function>')}}")
-  pretty_fn(
+  fn_out <- pretty_fn(
     # R/utils-print.R
     x,
     lineno = fn_lineno,
@@ -118,13 +130,17 @@ print.typedr <- function(x, ...) {
     cli_bullets(set_names(lines, rep("*", length(lines))))
     if (n_all > max_args) {
       remaining <- n_all - max_args
-      extra <- c(
-        " " = col_grey("{.emph ... and {remaining} more args ...}"),
-        col_grey("Run `typedr::print_all_args()` to see all args types.")
-      )
-      cli_bullets(extra)
+      cli_bullets(c(
+        " " = col_grey("{.emph ... and {remaining} more args ...}")
+      ))
     }
   }
+
+  .typedr_print_fn_meta(
+    truncated = attr(fn_out, "typedr_fn_truncated", exact = TRUE),
+    args_truncated = args_truncated,
+    color = attr(fn_out, "typedr_fn_color", exact = TRUE)
+  )
 
   invisible(x)
 }
@@ -144,10 +160,14 @@ print.typedr_value <- function(
   }
 
   # Strip typedr_value metadata before inspecting the underlying value.
-  untyped <- structure(x, class = setdiff(class(x), "typedr_value"))
-  attr(untyped, "typedr_name") <- NULL
-  attr(untyped, "typedr_assertion") <- NULL
-  attr(untyped, "typedr_const") <- NULL
+  if (.typedr_is_wrapped_null(x)) { # R/utils.R
+    untyped <- NULL
+  } else {
+    untyped <- structure(x, class = setdiff(class(x), "typedr_value"))
+    attr(untyped, "typedr_name") <- NULL
+    attr(untyped, "typedr_assertion") <- NULL
+    attr(untyped, "typedr_const") <- NULL
+  }
 
   format_len <- function(n) {
     format(n, big.mark = ",", scientific = FALSE, trim = TRUE)
@@ -221,7 +241,7 @@ print.typedr_value <- function(
   }
 
   format_cell <- function(x) {
-    if (length(x) == 0 || (length(x) == 1 && is.na(x))) {
+    if (length(x) == 0 || (length(x) == 1 && is_na(x))) {
       return("NA")
     }
     if (is_character(x)) {

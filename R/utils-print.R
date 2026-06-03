@@ -204,18 +204,24 @@ vsc_dark_plus <- function() {
   keep <- as.integer(max_total / 2)
 
   hidden <- n - 2 * keep
-  marker <- sprintf("... %d lines folded ...", hidden)
+  marker <- col_grey(sprintf("... %d lines folded ...", hidden))
   marker <- if (lineno) {
     c(
-      paste0(strrep(" ", nchar(length(xs)) - 1), cli::symbol$arrow_up),
+      col_grey(paste0(
+        strrep(" ", nchar(length(xs)) - 1),
+        cli::symbol$arrow_up
+      )),
       paste0(strrep(" ", indent), marker),
-      paste0(strrep(" ", nchar(length(xs)) - 1), cli::symbol$arrow_down)
+      col_grey(paste0(
+        strrep(" ", nchar(length(xs)) - 1),
+        cli::symbol$arrow_down
+      ))
     )
   } else {
     c(
-      paste0(strrep(" ", indent), cli::symbol$arrow_up),
+      col_grey(paste0(strrep(" ", indent), cli::symbol$arrow_up)),
       paste0(strrep(" ", indent), marker),
-      paste0(strrep(" ", indent), cli::symbol$arrow_down)
+      col_grey(paste0(strrep(" ", indent), cli::symbol$arrow_down))
     )
   }
 
@@ -257,18 +263,6 @@ pretty_fn <- function(
   }
 
   use_prettycode <- is_installed("prettycode")
-  if (!use_prettycode && color) {
-    .warn_once(
-      # R/utils.R
-      id = "prettycode_missing",
-      msg = c(
-        "!" = "{.pkg prettycode} is not installed, using basic {.pkg typedr} syntax highlighting.",
-        "i" = "Install it with {.code install.packages('prettycode')} for fuller R syntax highlighting.",
-        "{col_grey('This message is displayed once per session.')}"
-      ),
-      type = "tips"
-    )
-  }
 
   if (color) {
     lines <- if (use_prettycode) {
@@ -297,22 +291,54 @@ pretty_fn <- function(
 
   lines <- .maybe_fold(lines, indent, lineno, max_total = limit_lines)
   lln <- length(lines)
+  truncated <- lln < llr
 
   if (output == "cli") {
-    cli_verbatim(c(
+    cli_verbatim(lines)
+    invisible(structure(
       lines,
-      if (lln < llr) {
-        info <- col_grey(format_inline(
-          "Run `typedr::print_whole_fn()` to see whole function."
-        ))
-      }
+      typedr_fn_truncated = truncated,
+      typedr_fn_color = color
     ))
-    invisible(lines)
   } else if (output == "vector") {
     return(lines)
   } else {
     return(paste(lines, collapse = "\n"))
   }
+}
+
+.typedr_print_fn_meta <- function(
+  truncated = FALSE,
+  args_truncated = FALSE,
+  color = TRUE
+) {
+  if (isTRUE(truncated)) {
+    cli_text(col_grey(format_inline(
+      "Run `typedr::print_whole_fn()` to see whole function."
+    )))
+  }
+  if (isTRUE(args_truncated)) {
+    cli_text(col_grey(format_inline(
+      "Run `typedr::print_all_args()` to see all args types."
+    )))
+  }
+  if (color && !is_installed("prettycode")) {
+    show_tip <- !isTRUE(.typedr_state$warned_once$prettycode_missing)
+    if (show_tip && (isTRUE(truncated) || isTRUE(args_truncated))) {
+      cli_verbatim("")
+    }
+    .warn_once(
+      # R/utils.R
+      id = "prettycode_missing",
+      msg = c(
+        "!" = "{.pkg {{prettycode}}} is not installed, using basic {.pkg {{typedr}}} syntax highlighting.",
+        "i" = "Install it with {.code install.packages('prettycode')} for fuller R syntax highlighting.",
+        col_grey("This message is displayed once per session.")
+      ),
+      type = "tips"
+    )
+  }
+  invisible(NULL)
 }
 
 .stats_typedr_fn <- function(x, top_k = 8L, width_cutoff = 60L) {
