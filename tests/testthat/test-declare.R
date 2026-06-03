@@ -1,3 +1,4 @@
+# fmt: skip file
 test_that("check_output works", {
   expect_equal(check_output(2, Double()), 2)
   expect_error(check_output(2L, Double()), class = "typedr_return_error")
@@ -116,8 +117,26 @@ test_that("declare works", {
     class = "typedr_initial_error"
   )
 
-  expect_equal(Double()?x <- 1, 1, ignore_attr = TRUE)
-  expect_error(Double()?x <- 1L, class = "typedr_initial_error")
+  expect_equal(Double() ? x <- 1, 1, ignore_attr = TRUE)
+  expect_error(Double() ? x <- 1L, class = "typedr_initial_error")
+})
+
+test_that("declare supports nullable typed values without structure(NULL) warnings", {
+  expect_no_warning(declare("nullable_x", Null(), value = NULL))
+  expect_null(nullable_x)
+
+  nullable_x <- NULL
+  expect_null(nullable_x)
+
+  expect_no_warning(
+    declare("nullable_y", Character(allow_null = TRUE), value = NULL)
+  )
+  expect_null(nullable_y)
+
+  nullable_y <- "ok"
+  expect_equal(nullable_y, "ok", ignore_attr = TRUE)
+
+  expect_error(nullable_y <- 1L, class = "typedr_assign_error")
 })
 
 test_that("declare supports missing initial value", {
@@ -161,12 +180,35 @@ test_that("declare errors have structured classes", {
 })
 
 test_that("values are declared in separate environments", {
-  typedr::Integer()?a
-  typedr::Integer()?b
+  typedr::Integer() ? a
+  typedr::Integer() ? b
 
   a <- 1L
   b <- 2L
 
   expect_equal(a, 1L, ignore_attr = TRUE)
   expect_equal(b, 2L, ignore_attr = TRUE)
+})
+
+test_that("active bindings stay honest under repeated assignment", {
+  declare("stress_number", Double(), value = 0)
+
+  for (i in seq_len(3)) {
+    stress_number <- i / 10
+    expect_equal(stress_number, i / 10, ignore_attr = TRUE)
+  }
+
+  expect_error(stress_number <- 1L, class = "typedr_assign_error")
+
+  declare("stress_const", Character(), value = "locked", const = TRUE)
+  expect_error(stress_const <- "open", class = "typedr_constant_error")
+
+  f <- function(x) {
+    check_arg(x, Double(), .bind = TRUE)
+    x <- x + 1
+    expect_error(x <- 1L, class = "typedr_assign_error")
+    x
+  }
+  expect_equal(f(1), 2)
+  expect_error(f(1L), class = "typedr_type_error")
 })

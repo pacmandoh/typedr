@@ -155,6 +155,15 @@ test_that("dependent fallbacks warn when inactive arguments are supplied", {
     expect_true(f(a2 = 1)),
     class = "typedr_dependency_inactive_warning"
   )
+  w <- tryCatch(
+    f(a2 = 1),
+    warning = function(w) w,
+    finally = invisible(NULL)
+  )
+  w_lines <- strsplit(conditionMessage(w), "\n", fixed = TRUE)[[1]]
+  expect_length(w_lines, 2)
+  expect_match(w_lines[[1]], "^!")
+  expect_match(w_lines[[2]], "^  ")
   expect_warning(
     expect_true(f(a1 = NULL, a2 = 1)),
     class = "typedr_dependency_inactive_warning"

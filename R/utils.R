@@ -48,18 +48,33 @@ type_printer <- function(type, printer) {
   .typedr_state$type_printers[[key]]
 }
 
-.warn_once <- function(id, msg, type = c("warn", "tips")) {
+.warn_once <- function(id, msg, type = c("warn", "tips"), call = caller_env()) {
   type <- arg_match(type)
   if (isTRUE(.typedr_state$warned_once[[id]])) {
     return(invisible(NULL))
   }
   if (type == "warn") {
-    cli_warn(msg)
+    .cli_warn_bullets(msg, call = call)
   } else {
-    cli_bullets(col_grey(msg))
+    cli_bullets(msg)
   }
   .typedr_state$warned_once[[id]] <- TRUE
   invisible(NULL)
+}
+
+.cli_warn_bullets <- function(
+  msg,
+  call = caller_env(),
+  class = NULL,
+  .envir = parent.frame()
+) {
+  formatted <- format_warning(msg, .envir = .envir)
+  lines <- strsplit(formatted, "\n", fixed = TRUE)[[1]]
+  if (length(lines) > 1L) {
+    lines[-1L] <- paste0("  ", lines[-1L])
+    formatted <- paste(lines, collapse = "\n")
+  }
+  rlang::warn(formatted, class = class, call = call)
 }
 
 .capitalize <- function(x) {
@@ -81,7 +96,7 @@ type_printer <- function(type, printer) {
     x_arg,
     "`: ",
     col_green(.typedr_deparse(actual)),
-    "\n",
+    ", ",
     "`",
     y_arg,
     "`: ",
@@ -125,12 +140,27 @@ type_printer <- function(type, printer) {
   is_call(expr, c("<-", "="))
 }
 
+.typedr_is_wrapped_null <- function(x) {
+  inherits(x, "typedr_null")
+}
+
+.typedr_unwrap <- function(x) {
+  if (.typedr_is_wrapped_null(x)) {
+    return(NULL)
+  }
+  x
+}
+
 .apply_typedr_attrs <- function(val, name, assertion_call, const) {
-  structure(
-    val,
-    typedr_name = name,
-    typedr_assertion = assertion_call,
-    typedr_const = isTRUE(const),
-    class = c("typedr_value", class(val))
-  )
+  if (is_null(val)) {
+    # R deprecates `structure(NULL, *)`; keep metadata on an empty carrier instead.
+    out <- structure(list(), class = c("typedr_value", "typedr_null"))
+  } else {
+    out <- structure(val, class = c("typedr_value", class(val)))
+  }
+
+  attr(out, "typedr_name") <- name
+  attr(out, "typedr_assertion") <- assertion_call
+  attr(out, "typedr_const") <- isTRUE(const)
+  out
 }

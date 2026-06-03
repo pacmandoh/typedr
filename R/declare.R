@@ -76,6 +76,23 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
   .assertion_expr <- enexpr(.assertion)
   var_nm <- if (is_symbol(arg_expr)) as_name(arg_expr) else as_label(arg_expr)
 
+  if (is_missing(.arg)) {
+    fun_nm <- call_name(caller_call())
+    cli_abort(
+      c(
+        "Invalid {.cls Type()} of `{.field {var_nm}}` to `{.field {fun_nm}()}`.",
+        "x" = "Argument `{.field {var_nm}}` is missing."
+      ),
+      class = c(
+        "typedr_missing_argument_error",
+        "typedr_type_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      call = call
+    )
+  }
+
   if (.bind) {
     assertion_expr <- enexpr(.assertion)
     dots_exprs <- enexprs(...)
@@ -173,12 +190,6 @@ check_dependent_arg <- function(
     return(invisible(NULL))
   }
 
-  val <- try_fetch(.assertion(.arg), error = identity)
-  if (!inherits(val, "error")) {
-    return(invisible(NULL))
-  }
-
-  val$call <- assertion_expr
   guard_label <- expr_deparse(guard_expr)
   assertion_label <- expr_deparse(assertion_expr)
   message <- c(
@@ -186,14 +197,53 @@ check_dependent_arg <- function(
     "i" = "Guard `{.field {guard_label}}` matched, so `{.field {var_nm}}` must satisfy {.cls {assertion_label}}."
   )
 
+  if (is_missing(.arg)) {
+    message <- c(
+      message,
+      "x" = "Argument `{.field {var_nm}}` is missing."
+    )
+    if (.severity == "warning") {
+      .cli_warn_bullets(
+        message,
+        class = c(
+          "typedr_dependency_warning",
+          "typedr_check_arg_warning",
+          "typedr_warning"
+        ),
+        call = call
+      )
+      return(invisible(NULL))
+    }
+
+    cli_abort(
+      message,
+      class = c(
+        "typedr_missing_argument_error",
+        "typedr_dependency_error",
+        "typedr_type_error",
+        "typedr_check_arg_error",
+        "typedr_error"
+      ),
+      call = call
+    )
+  }
+
+  val <- try_fetch(.assertion(.arg), error = identity)
+  if (!inherits(val, "error")) {
+    return(invisible(NULL))
+  }
+
+  val$call <- assertion_expr
+
   if (.severity == "warning") {
-    cli_warn(
+    .cli_warn_bullets(
       message,
       class = c(
         "typedr_dependency_warning",
         "typedr_check_arg_warning",
         "typedr_warning"
-      )
+      ),
+      call = call
     )
     return(invisible(NULL))
   }
@@ -214,18 +264,19 @@ check_dependent_arg <- function(
 typedr_inactive_arg_cnd <- function(var_nm, guard_expr, severity, call) {
   guard_label <- expr_deparse(guard_expr)
   message <- c(
-    "Argument `{.field {var_nm}}` is inactive.",
+    "!" = "Argument `{.field {var_nm}}` is inactive.",
     "i" = "Guard `{.field {guard_label}}` did not match, so `{.field {var_nm}}` will not take effect."
   )
 
   if (severity == "warning") {
-    cli_warn(
+    .cli_warn_bullets(
       message,
       class = c(
         "typedr_dependency_inactive_warning",
         "typedr_check_arg_warning",
         "typedr_warning"
-      )
+      ),
+      call = call
     )
     return(invisible(NULL))
   }
@@ -251,13 +302,17 @@ typedr_eval_guard <- function(guard, env) {
   }
 
   if (is_call(guard, "|")) {
-    return(typedr_eval_guard(guard[[2]], env) ||
-      typedr_eval_guard(guard[[3]], env))
+    return(
+      typedr_eval_guard(guard[[2]], env) ||
+        typedr_eval_guard(guard[[3]], env)
+    )
   }
 
   if (is_call(guard, "&")) {
-    return(typedr_eval_guard(guard[[2]], env) &&
-      typedr_eval_guard(guard[[3]], env))
+    return(
+      typedr_eval_guard(guard[[2]], env) &&
+        typedr_eval_guard(guard[[3]], env)
+    )
   }
 
   if (is_call(guard, ":") && length(guard) == 3L) {
@@ -444,13 +499,15 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
                 )
               )
             }
-            val
+            .typedr_unwrap(val) # R/utils.R
           }
         })
       ),
       env = f_env
     )
   } else {
+    env_bind(f_env, .typedr_assertion_expr = assertion_quoted)
+
     f <- eval_bare(
       expr(
         local({
@@ -461,7 +518,8 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
                 !!call2(assertion_quoted, expr(assigned_value)),
                 error = identity
               )
-              rt_assertion <- attr(val, "typedr_assertion")
+              rt_assertion <- attr(val, "typedr_assertion", exact = TRUE) %||%
+                .typedr_assertion_expr
               if (inherits(tmp, "error")) {
                 tmp$call <- rt_assertion
                 cli_abort(
@@ -476,7 +534,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
               }
               val <<- .apply_typedr_attrs(tmp, x, rt_assertion, const = FALSE) # R/utils.R
             }
-            val
+            .typedr_unwrap(val) # R/utils.R
           }
         })
       ),
@@ -490,5 +548,5 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
   }
   env_bind_active(call, !!x := f)
 
-  return(invisible(value))
+  return(invisible(.typedr_unwrap(value))) # R/utils.R
 }
