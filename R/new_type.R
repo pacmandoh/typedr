@@ -2,24 +2,55 @@
 #'
 #' `as_assertion_factory()` wraps a checking function and turns it into a typedr
 #' assertion factory. The wrapped function must take the value to check as its
-#' first argument and return the checked value, or throw an error if the value is
-#' invalid.
+#' first argument and return the checked value, return a predicate result, or
+#' throw an error if the value is invalid. Errors that are not already typedr
+#' errors are wrapped in a standard typedr custom assertion error. When a
+#' non-typedr error already has a useful message, that message becomes the
+#' typedr error message instead of being repeated as a parent error.
 #'
 #' @param f A function whose first argument is the value to check. Additional
 #'   arguments become arguments of the assertion factory.
+#' @param mode How to interpret the return value of `f`. `"assertion"` expects
+#'   `f` to return the checked value. `"predicate"` expects `f` to return a
+#'   scalar logical. `"auto"` keeps value-returning assertions working and
+#'   treats scalar logical values that are not the original value as predicates.
+#' @param message Optional message to use when a predicate assertion fails or
+#'   when a non-typedr error is wrapped.
 #' @return A function with class `assertion_factory`.
 #'
 #' @export
 #' @importFrom rlang call2 expr fn_fmls_syms fn_fmls new_function pairlist2 is_null caller_env names2 sym try_fetch
 #' @importFrom cli cli_abort
-as_assertion_factory <- function(f) {
+as_assertion_factory <- function(
+  f,
+  mode = c("auto", "assertion", "predicate"),
+  message = NULL
+) {
+  mode <- match.arg(mode)
+  if (!is_null(message) && (!is_character(message) || length(message) != 1L)) {
+    cli_abort(
+      "`message` must be a single string or `NULL`.",
+      class = c(
+        "typedr_input_error",
+        "typedr_assertion_factory_error",
+        "typedr_error"
+      )
+    )
+  }
+
   # create a function with arguments being the additional args to f and dots
   f_call <- call2(expr(f), expr(value), !!!fn_fmls_syms(f)[-1])
   dots_call <- call2("process_assertion_factory_dots", sym("..."))
+  predicate <- .typedr_predicate_label(f)
+  message_expr <- if (is_null(message)) quote(NULL) else message
+  predicate_expr <- if (is_null(predicate)) quote(NULL) else predicate
 
   res <- new_function(
     pairlist2(!!!fn_fmls(f)[-1], ... = ),
     expr({
+      .typedr_factory_mode <- !!mode
+      .typedr_factory_message <- !!message_expr
+      .typedr_factory_predicate <- !!predicate_expr
       f_call <- substitute(!!f_call)
       # remove if empty
       f_call <- Filter(function(value) !identical(value, expr(expr = )), f_call)
@@ -27,7 +58,22 @@ as_assertion_factory <- function(f) {
       header <- call2(
         "{",
         expr(f <- !!f), # so the substituted definition is readable
-        substitute(value <- F_CALL, list(F_CALL = f_call))
+        substitute(
+          value <- .typedr_run_assertion_check(
+            function() F_CALL,
+            value,
+            mode = MODE,
+            message = MESSAGE,
+            predicate = PREDICATE,
+            call = quote(F_CALL)
+          ),
+          list(
+            F_CALL = f_call,
+            MODE = .typedr_factory_mode,
+            MESSAGE = .typedr_factory_message,
+            PREDICATE = .typedr_factory_predicate
+          )
+        )
       )
 
       # the footer is made of additional assertions derived from `...`
@@ -48,6 +94,121 @@ as_assertion_factory <- function(f) {
   attr(res, "typedr_type_function") <- f
   environment(res) <- caller_env()
   res
+}
+
+.typedr_predicate_label <- function(f) {
+  body <- body(f)
+  if (is_null(body)) {
+    return(NULL)
+  }
+
+  expr <- if (is_call(body, "{")) {
+    parts <- as.list(body)
+    if (length(parts) < 2L) {
+      return(NULL)
+    }
+    parts[[length(parts)]]
+  } else {
+    body
+  }
+
+  paste(deparse(expr, width.cutoff = 60), collapse = " ")
+}
+
+.typedr_run_assertion_check <- function(
+  check,
+  value,
+  mode = c("auto", "assertion", "predicate"),
+  message = NULL,
+  predicate = NULL,
+  call = caller_env()
+) {
+  mode <- match.arg(mode)
+  has_message <- !is_null(message)
+
+  result <- try_fetch(check(), error = identity)
+  if (inherits(result, "error")) {
+    if (inherits(result, "typedr_error")) {
+      if (is_call(call)) {
+        result$call <- call
+        attr(result$call, "srcref") <- NULL
+      }
+      rlang::cnd_signal(result)
+    }
+    result_message <- conditionMessage(result)
+    bullets <- if (has_message) {
+      if (identical(message, result_message)) {
+        message
+      } else {
+        c(
+          message,
+          "i" = result_message
+        )
+      }
+    } else {
+      result_message
+    }
+    cli_abort(
+      bullets,
+      class = c(
+        "typedr_custom_assertion_error",
+        "typedr_assertion_error",
+        "typedr_error"
+      ),
+      call = call
+    )
+  }
+  message <- message %||% "Custom assertion failed."
+
+  is_predicate <- is_logical(result) &&
+    length(result) == 1L &&
+    (mode == "predicate" || (mode == "auto" && !identical(result, value)))
+
+  if (is_predicate) {
+    if (isTRUE(result)) {
+      return(value)
+    }
+    predicate_line <- if (!is_null(predicate)) {
+      sprintf("`%s` evaluated to %s.", predicate, .typedr_deparse(result))
+    } else {
+      sprintf("custom predicate evaluated to %s.", .typedr_deparse(result))
+    }
+    cli_abort(
+      c(
+        message,
+        "x" = predicate_line,
+        "i" = sprintf("value: %s", .typedr_deparse(value))
+      ),
+      class = c(
+        "typedr_custom_assertion_error",
+        "typedr_assertion_error",
+        "typedr_error"
+      ),
+      call = call
+    )
+  }
+
+  if (mode == "predicate") {
+    cli_abort(
+      c(
+        "Custom assertion predicate must return a scalar logical.",
+        "x" = .typedr_compare(
+          typeof(result),
+          "logical",
+          x_arg = "typeof(result)",
+          y_arg = "expected"
+        )
+      ),
+      class = c(
+        "typedr_custom_assertion_error",
+        "typedr_assertion_error",
+        "typedr_error"
+      ),
+      call = call
+    )
+  }
+
+  result
 }
 
 #' Process additional assertion conditions
@@ -209,13 +370,13 @@ infer_implicit_assignment_call <- function(value) {
 get_assertion <- function(x) {
   x <- as.character(substitute(x))
   find_assertion_call <- function(node) {
-    if (!is.call(node)) {
+    if (!is_call(node)) {
       return(NULL)
     }
 
     if (
       length(node) >= 2 &&
-        is.call(node[[1]]) &&
+        is_call(node[[1]]) &&
         any(vapply(
           as.list(node)[-1],
           identical,

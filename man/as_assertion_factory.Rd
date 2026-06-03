@@ -4,11 +4,23 @@
 \alias{as_assertion_factory}
 \title{Build an assertion factory}
 \usage{
-as_assertion_factory(f)
+as_assertion_factory(
+  f,
+  mode = c("auto", "assertion", "predicate"),
+  message = NULL
+)
 }
 \arguments{
 \item{f}{A function whose first argument is the value to check. Additional
 arguments become arguments of the assertion factory.}
+
+\item{mode}{How to interpret the return value of \code{f}. \code{"assertion"} expects
+\code{f} to return the checked value. \code{"predicate"} expects \code{f} to return a
+scalar logical. \code{"auto"} keeps value-returning assertions working and
+treats scalar logical values that are not the original value as predicates.}
+
+\item{message}{Optional message to use when a predicate assertion fails or
+when a non-typedr error is wrapped.}
 }
 \value{
 A function with class \code{assertion_factory}.
@@ -16,6 +28,9 @@ A function with class \code{assertion_factory}.
 \description{
 \code{as_assertion_factory()} wraps a checking function and turns it into a typedr
 assertion factory. The wrapped function must take the value to check as its
-first argument and return the checked value, or throw an error if the value is
-invalid.
+first argument and return the checked value, return a predicate result, or
+throw an error if the value is invalid. Errors that are not already typedr
+errors are wrapped in a standard typedr custom assertion error. When a
+non-typedr error already has a useful message, that message becomes the
+typedr error message instead of being repeated as a parent error.
 }

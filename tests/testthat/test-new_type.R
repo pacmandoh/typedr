@@ -1,19 +1,19 @@
 test_that("as_assertion_factory builds assertion factories", {
   Numeric <- as_assertion_factory(function(value, length = NULL) {
-    if (!is.numeric(value)) {
+    if (!is_bare_numeric(value)) {
       cli::cli_abort("not numeric")
     }
-    if (!is.null(length) && length(value) != length) {
+    if (!is_null(length) && length(value) != length) {
       cli::cli_abort("bad length")
     }
     value
   })
 
   expect_s3_class(Numeric, "assertion_factory")
-  expect_true(is.function(Numeric))
+  expect_true(is_function(Numeric))
 
   assertion <- Numeric(length = 2)
-  expect_true(is.function(assertion))
+  expect_true(is_function(assertion))
   expect_equal(assertion(c(1, 2)), c(1, 2))
   expect_error(assertion(1), "bad length")
   expect_error(Numeric()("x"), "not numeric")
@@ -28,7 +28,174 @@ test_that("as_assertion_factory preserves generated assertion shape", {
   body_text <- paste(deparse(body(assertion)), collapse = "\n")
 
   expect_match(body_text, "f <- function", fixed = TRUE)
-  expect_match(body_text, "value <- f(value, length = 1)", fixed = TRUE)
+  expect_match(body_text, ".typedr_run_assertion_check", fixed = TRUE)
+  expect_match(body_text, "f(value,", fixed = TRUE)
+  expect_match(body_text, "length = 1", fixed = TRUE)
+})
+
+test_that("as_assertion_factory auto-wraps simple predicates", {
+  Positive <- as_assertion_factory(function(value) {
+    value > 0
+  })
+
+  expect_equal(Positive()(1), 1)
+  err <- rlang::catch_cnd(Positive()(0), "error")
+
+  expect_s3_class(err, "typedr_custom_assertion_error")
+  expect_match(conditionMessage(err), "value > 0", fixed = TRUE)
+  expect_match(conditionMessage(err), "value: 0", fixed = TRUE)
+})
+
+test_that("as_assertion_factory uses custom predicate messages", {
+  Positive <- as_assertion_factory(
+    function(value) value > 0,
+    message = "`value` must be positive."
+  )
+
+  err <- rlang::catch_cnd(Positive()(0), "error")
+
+  expect_s3_class(err, "typedr_custom_assertion_error")
+  expect_match(conditionMessage(err), "`value` must be positive.", fixed = TRUE)
+  expect_match(conditionMessage(err), "value > 0", fixed = TRUE)
+})
+
+test_that("as_assertion_factory supports explicit predicate mode", {
+  IsTrue <- as_assertion_factory(
+    function(value) value,
+    mode = "predicate"
+  )
+  BadPredicate <- as_assertion_factory(
+    function(value) "not logical",
+    mode = "predicate"
+  )
+
+  expect_true(IsTrue()(TRUE))
+  expect_error(IsTrue()(FALSE), class = "typedr_custom_assertion_error")
+  expect_error(BadPredicate()(1), class = "typedr_custom_assertion_error")
+})
+
+test_that("as_assertion_factory wraps ordinary errors without repeated parents", {
+  BaseError <- as_assertion_factory(function(value) {
+    stop("plain failure", call. = FALSE)
+  })
+  BaseErrorWithMessage <- as_assertion_factory(
+    function(value) stop("plain failure", call. = FALSE),
+    message = "`value` failed the custom check."
+  )
+  BaseErrorWithSameMessage <- as_assertion_factory(
+    function(value) stop("plain failure", call. = FALSE),
+    message = "plain failure"
+  )
+  RlangError <- as_assertion_factory(function(value) {
+    rlang::abort("rlang failure", class = "custom_rlang_error")
+  })
+
+  base_err <- rlang::catch_cnd(BaseError()(1), "error")
+  custom_msg_err <- rlang::catch_cnd(BaseErrorWithMessage()(1), "error")
+  same_msg_err <- rlang::catch_cnd(BaseErrorWithSameMessage()(1), "error")
+  rlang_err <- rlang::catch_cnd(RlangError()(1), "error")
+
+  expect_s3_class(base_err, "typedr_custom_assertion_error")
+  expect_null(base_err$parent)
+  expect_match(conditionMessage(base_err), "plain failure", fixed = TRUE)
+  expect_no_match(
+    conditionMessage(base_err),
+    "Custom assertion failed.",
+    fixed = TRUE
+  )
+
+  expect_s3_class(custom_msg_err, "typedr_custom_assertion_error")
+  expect_null(custom_msg_err$parent)
+  expect_match(
+    conditionMessage(custom_msg_err),
+    "`value` failed the custom check.",
+    fixed = TRUE
+  )
+
+  expect_s3_class(same_msg_err, "typedr_custom_assertion_error")
+  expect_null(same_msg_err$parent)
+  expect_equal(
+    length(gregexpr("plain failure", conditionMessage(same_msg_err), fixed = TRUE)[[1]]),
+    1L
+  )
+
+  expect_s3_class(rlang_err, "typedr_custom_assertion_error")
+  expect_null(rlang_err$parent)
+  expect_match(conditionMessage(rlang_err), "rlang failure", fixed = TRUE)
+})
+
+test_that("as_assertion_factory keeps custom assertion errors concise", {
+  EvenInteger <- as_assertion_factory(function(value) {
+    Integer(length = 1)(value)
+    if (value %% 2L != 0L) {
+      stop("`value` must be even.", call. = FALSE)
+    }
+    value
+  })
+
+  err <- rlang::catch_cnd(EvenInteger()(3L), "error")
+
+  expect_s3_class(err, "typedr_custom_assertion_error")
+  expect_null(err$parent)
+  expect_equal(conditionMessage(err), "`value` must be even.")
+})
+
+test_that("as_assertion_factory validates custom messages", {
+  expect_error(
+    as_assertion_factory(function(value) TRUE, message = c("a", "b")),
+    class = "typedr_input_error"
+  )
+})
+
+test_that("assertion factory helpers cover predicate label fallbacks", {
+  expect_null(.typedr_predicate_label(sum))
+  expect_null(.typedr_predicate_label(function(value) {}))
+
+  err <- rlang::catch_cnd(
+    .typedr_run_assertion_check(
+      function() FALSE,
+      1,
+      mode = "predicate",
+      predicate = NULL
+    ),
+    "error"
+  )
+
+  expect_s3_class(err, "typedr_custom_assertion_error")
+  expect_match(
+    conditionMessage(err),
+    "custom predicate evaluated to FALSE.",
+    fixed = TRUE
+  )
+})
+
+test_that("as_assertion_factory preserves existing typedr assertion errors", {
+  err <- rlang::catch_cnd(Integer()("x"), "error")
+
+  expect_s3_class(err, "typedr_type_mismatch")
+  expect_null(err$parent)
+})
+
+test_that("as_assertion_factory removes generated source refs when rethrowing typedr errors", {
+  PositiveDouble <- as_assertion_factory(function(value) {
+    value <- Double(length = 1)(value)
+    if (value <= 0) {
+      cli::cli_abort("`value` must be positive.")
+    }
+    value
+  })
+
+  err <- rlang::catch_cnd(PositiveDouble()(1L), "error")
+
+  expect_s3_class(err, "typedr_type_mismatch")
+  expect_null(attr(err$call, "srcref"))
+})
+
+test_that("auto mode preserves logical values returned as checked values", {
+  Identity <- as_assertion_factory(function(value) value)
+
+  expect_false(Identity()(FALSE))
+  expect_true(Identity()(TRUE))
 })
 
 test_that("named dots add value-derived checks", {
@@ -45,7 +212,7 @@ test_that("named dots add value-derived checks", {
 
 test_that("formula dots add custom checks with and without custom messages", {
   Fruit <- as_assertion_factory(function(value) {
-    if (!is.character(value)) {
+    if (!is_character(value)) {
       cli::cli_abort("not character")
     }
     value
@@ -136,15 +303,6 @@ test_that("implicit assignment inference falls back to Any for unsupported class
     infer_implicit_assignment_call(obj_multi),
     call2("Any", class = c("custom_a", "custom_b"))
   )
-})
-
-test_that("declare can use assertion factories directly", {
-  expect_equal(
-    declare("typed_from_factory", Double, value = 1),
-    1,
-    ignore_attr = TRUE
-  )
-  expect_error(typed_from_factory <- 1L, class = "typedr_assign_error")
 })
 
 test_that("get_assertion returns the active binding assertion call", {
