@@ -133,18 +133,6 @@
   # ? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # ? CASE 1: `?` used to annotate a function definition on the RHS
   if (is_call(rhs, "function")) {
-    # TODO(source-ref display): This was an unfinished attempt to keep the
-    # original function srcref for printing/error context. It is disabled
-    # because `rhs_raw` is not defined on this path, and current printing uses
-    # the rewritten function body instead.
-    # rhs_lines <- try_fetch(
-    #   {
-    #     rhs_sr <- attr(rhs_raw, "srcref", exact = TRUE)
-    #     if (!is_null(rhs_sr)) as.character(rhs_sr) else NULL
-    #   },
-    #   error = function(e) NULL
-    # )
-
     value <- eval_bare(rhs, env = call)
     body <- fn_body(value)
 
