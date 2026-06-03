@@ -174,12 +174,12 @@ notation is usually clearer in function signatures.
 As we've seen with `Integer(3)`, passing arguments to a
 assertion factory restricts the type.
 
-For instance `Integer` has arguments `length` `null_ok` and
-`...`. We already used `length`, `null_ok` is convenient to allow a default `NULL`
+For instance `Integer` has arguments `length` `allow_null` and
+`...`. We already used `length`, `allow_null` is convenient to allow a default `NULL`
 value in addition to the `"integer"` type.
 
 The arguments can differ between assertion factories, for instance `Data.frame`
-has `nrow`, `ncol`, `each`, `null_ok` and `...`
+has `nrow`, `ncol`, `each`, `allow_null` and `...`
 
 ```{r}
 Data.frame() ? x <- iris

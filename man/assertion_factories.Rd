@@ -30,49 +30,49 @@
 \usage{
 Any(length = NULL, ...)
 
-Logical(length = NULL, null_ok = FALSE, ...)
+Logical(length = NULL, allow_null = FALSE, ...)
 
-Integer(length = NULL, null_ok = FALSE, ...)
+Integer(length = NULL, allow_null = FALSE, ...)
 
-Double(length = NULL, null_ok = FALSE, ...)
+Double(length = NULL, allow_null = FALSE, ...)
 
-Character(length = NULL, null_ok = FALSE, ...)
+Character(length = NULL, allow_null = FALSE, ...)
 
-Raw(length = NULL, null_ok = FALSE, ...)
+Raw(length = NULL, allow_null = FALSE, ...)
 
-List(length = NULL, each, data_frame_ok = TRUE, null_ok = FALSE, ...)
+List(length = NULL, each, data_frame_ok = TRUE, allow_null = FALSE, ...)
 
 Null(...)
 
-Closure(null_ok = FALSE, ...)
+Closure(allow_null = FALSE, ...)
 
-Special(null_ok = FALSE, ...)
+Special(allow_null = FALSE, ...)
 
-Builtin(null_ok = FALSE, ...)
+Builtin(allow_null = FALSE, ...)
 
-Environment(null_ok = FALSE, ...)
+Environment(allow_null = FALSE, ...)
 
-Symbol(null_ok = FALSE, ...)
+Symbol(allow_null = FALSE, ...)
 
-Pairlist(length = NULL, each, null_ok = TRUE, ...)
+Pairlist(length = NULL, each, allow_null = TRUE, ...)
 
-Language(null_ok = FALSE, ...)
+Language(allow_null = FALSE, ...)
 
-Expression(length = NULL, null_ok = FALSE, ...)
+Expression(length = NULL, allow_null = FALSE, ...)
 
-Function(null_ok = FALSE, ...)
+Function(allow_null = FALSE, ...)
 
-Factor(length = NULL, levels, null_ok = FALSE, ...)
+Factor(length = NULL, levels, allow_null = FALSE, ...)
 
-Data.frame(nrow, ncol, each, null_ok = FALSE, ...)
+Data.frame(nrow, ncol, each, allow_null = FALSE, ...)
 
-Matrix(nrow, ncol, null_ok = FALSE, ...)
+Matrix(nrow, ncol, allow_null = FALSE, ...)
 
-Array(dim, null_ok = FALSE, ...)
+Array(dim, allow_null = FALSE, ...)
 
-Date(length = NULL, null_ok = FALSE, ...)
+Date(length = NULL, allow_null = FALSE, ...)
 
-Time(length = NULL, null_ok = FALSE, ...)
+Time(length = NULL, allow_null = FALSE, ...)
 
 Dots(length = NULL, each, ...)
 }
@@ -81,7 +81,7 @@ Dots(length = NULL, each, ...)
 
 \item{...}{Additional conditions, see details.}
 
-\item{null_ok}{Whether \code{NULL} values should be accepted and not subjected to
+\item{allow_null}{Whether \code{NULL} values should be accepted and not subjected to
 any further check.}
 
 \item{each}{Assertion that every item or column must satisfy.}

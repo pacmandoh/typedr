@@ -93,14 +93,14 @@ x <- 2
 #> ! Assigned value to `x` doesn't satisfy the assertion.
 #> Caused by error:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "double" `expected`: "character"
+#> ✖ `typeof(value)`: "double", `expected`: "character"
 
 y <- 4:5
 #> Error:
 #> ! Assigned value to `y` doesn't satisfy the assertion.
 #> Caused by error in `Integer()`:
 #> ! length mismatch
-#> ✖ `length(value)`: 2L `expected`: 3L
+#> ✖ `length(value)`: 2L, `expected`: 3L
 ```
 
 But the right type will work.
@@ -141,12 +141,12 @@ return this value, generally unmodified. For instance :
 Integer(3)(1:2)
 #> Error in `f()`:
 #> ! length mismatch
-#> ✖ `length(value)`: 2L `expected`: 3L
+#> ✖ `length(value)`: 2L, `expected`: 3L
 
 Character()(3)
 #> Error in `f()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "double" `expected`: "character"
+#> ✖ `typeof(value)`: "double", `expected`: "character"
 ```
 
 We call `Integer(3)` and `Character()` assertions, and we call `Integer`
@@ -204,12 +204,12 @@ signatures.
 As we’ve seen with `Integer(3)`, passing arguments to a assertion
 factory restricts the type.
 
-For instance `Integer` has arguments `length` `null_ok` and `...`. We
-already used `length`, `null_ok` is convenient to allow a default `NULL`
+For instance `Integer` has arguments `length` `allow_null` and `...`. We
+already used `length`, `allow_null` is convenient to allow a default `NULL`
 value in addition to the `"integer"` type.
 
 The arguments can differ between assertion factories, for instance
-`Data.frame` has `nrow`, `ncol`, `each`, `null_ok` and `...`
+`Data.frame` has `nrow`, `ncol`, `each`, `allow_null` and `...`
 
 ``` r
 Data.frame() ? x <- iris
@@ -218,7 +218,7 @@ Data.frame(ncol = 2) ? x <- iris
 #> ! Invalid initial value for `x`.
 #> Caused by error in `Data.frame()`:
 #> ! Column number mismatch
-#> ✖ `ncol(value)`: 5L `expected`: 2L
+#> ✖ `ncol(value)`: 5L, `expected`: 2L
 Data.frame(each = Double()) ? x <- iris
 #> Error in `declare()`:
 #> ! Invalid initial value for `x`.
@@ -226,7 +226,7 @@ Data.frame(each = Double()) ? x <- iris
 #> ! column 5 ("Species") failed assertion.
 #> Caused by error in `f()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "integer" `expected`: "double"
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
 ```
 
 In the dots we can use arguments named as functions and with the value
@@ -240,7 +240,7 @@ Integer(anyNA = FALSE) ? x <- c(1L, 2L, NA)
 #> ! Invalid initial value for `x`.
 #> Caused by error in `Integer()`:
 #> ! `anyNA` mismatch
-#> ✖ `anyNA(value)`: TRUE `expected`: FALSE
+#> ✖ `anyNA(value)`: TRUE, `expected`: FALSE
 ```
 
 Useful arguments might be for instance, `anyDuplicated = 0L`,
@@ -258,7 +258,7 @@ Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry
 #> ! Invalid initial value for `x`.
 #> Caused by error in `Character()`:
 #> ! `value` is not a fruit!
-#> ✖ `value %in% c("apple", "pear", "cherry")`: FALSE `expected`: TRUE
+#> ✖ `value %in% c("apple", "pear", "cherry")`: FALSE, `expected`: TRUE
 ```
 
 This is often better done by defining a wrapper as shown below.
@@ -328,7 +328,7 @@ add(2, 3L)
 #> ! Invalid <Type()> of `y` to `add()`.
 #> Caused by error in `Double()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "integer" `expected`: "double"
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
 ```
 
 If we want to restrict `x` and `y` to the type “integer” in the rest of
@@ -399,7 +399,7 @@ scale_value(1L, 2L)
 #> ℹ Guard `x:Integer()` matched, so `scale` must satisfy <Double()>.
 #> Caused by error in `Double()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "integer" `expected`: "double"
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
 scale_value("a", "scale is ignored")
 #> [1] TRUE
 ```
@@ -425,7 +425,7 @@ dependent(FALSE, "x", 1L)
 #>   <Double()>.
 #> Caused by error in `Double()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "integer" `expected`: "double"
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
 ```
 
 By default, a guard that does not match simply leaves the dependent
@@ -454,7 +454,7 @@ optional_scale(x = 1L, scale = 2L)
 #> ℹ Guard `!x:Missing()` matched, so `scale` must satisfy <Double()>.
 #> Caused by error in `Double()`:
 #> ! type mismatch
-#> ✖ `typeof(value)`: "integer" `expected`: "double"
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
 ```
 
 `Missing()` is a guard-only helper: it matches when the argument was not

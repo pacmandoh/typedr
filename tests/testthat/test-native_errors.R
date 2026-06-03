@@ -55,7 +55,7 @@ test_that("native assertions use length, shape, and null mismatch classes", {
   )
   expect_typedr_error(Array(c(1, 2))(matrix(1)), "typedr_shape_mismatch")
 
-  expect_typedr_error(Pairlist(null_ok = FALSE)(NULL), "typedr_null_mismatch")
+  expect_typedr_error(Pairlist(allow_null = FALSE)(NULL), "typedr_null_mismatch")
 })
 
 test_that("container each failures preserve parent assertion errors", {

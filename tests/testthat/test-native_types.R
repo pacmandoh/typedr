@@ -12,8 +12,8 @@ test_that("`Logical` works", {
   expect_equal(Logical(1)(TRUE), TRUE)
   expect_error(Logical(2)(TRUE))
 
-  expect_equal(Logical(null_ok = TRUE)(NULL), NULL)
-  expect_error(Logical(null_ok = FALSE)(NULL))
+  expect_equal(Logical(allow_null = TRUE)(NULL), NULL)
+  expect_error(Logical(allow_null = FALSE)(NULL))
 })
 
 test_that("`Integer` works", {
@@ -23,8 +23,8 @@ test_that("`Integer` works", {
   expect_equal(Integer(1)(1L), 1L)
   expect_error(Integer(2)(1L))
 
-  expect_equal(Integer(null_ok = TRUE)(NULL), NULL)
-  expect_error(Integer(null_ok = FALSE)(NULL))
+  expect_equal(Integer(allow_null = TRUE)(NULL), NULL)
+  expect_error(Integer(allow_null = FALSE)(NULL))
 })
 
 test_that("`Double` works", {
@@ -34,8 +34,8 @@ test_that("`Double` works", {
   expect_equal(Double(1)(1), 1)
   expect_error(Double(2)(1))
 
-  expect_equal(Double(null_ok = TRUE)(NULL), NULL)
-  expect_error(Double(null_ok = FALSE)(NULL))
+  expect_equal(Double(allow_null = TRUE)(NULL), NULL)
+  expect_error(Double(allow_null = FALSE)(NULL))
 })
 
 test_that("`Character` works", {
@@ -45,8 +45,8 @@ test_that("`Character` works", {
   expect_equal(Character(1)("a"), "a")
   expect_error(Character(2)("a"))
 
-  expect_equal(Character(null_ok = TRUE)(NULL), NULL)
-  expect_error(Character(null_ok = FALSE)(NULL))
+  expect_equal(Character(allow_null = TRUE)(NULL), NULL)
+  expect_error(Character(allow_null = FALSE)(NULL))
 })
 
 test_that("`Raw` works", {
@@ -56,8 +56,8 @@ test_that("`Raw` works", {
   expect_equal(Raw(1)(as.raw("1")), as.raw("1"))
   expect_error(Raw(2)(as.raw("1")))
 
-  expect_equal(Raw(null_ok = TRUE)(NULL), NULL)
-  expect_error(Raw(null_ok = FALSE)(NULL))
+  expect_equal(Raw(allow_null = TRUE)(NULL), NULL)
+  expect_error(Raw(allow_null = FALSE)(NULL))
 })
 
 test_that("`List` works", {
@@ -79,8 +79,8 @@ test_that("`List` works", {
   expect_equal(List()(df), df)
   expect_error(List(data_frame_ok = FALSE)(df))
 
-  expect_equal(List(null_ok = TRUE)(NULL), NULL)
-  expect_error(List(null_ok = FALSE)(NULL))
+  expect_equal(List(allow_null = TRUE)(NULL), NULL)
+  expect_error(List(allow_null = FALSE)(NULL))
 })
 
 test_that("`Null` works", {
@@ -92,40 +92,40 @@ test_that("`Closure` works", {
   expect_equal(Closure()(mean), mean)
   expect_error(Closure()(1))
 
-  expect_equal(Closure(null_ok = TRUE)(NULL), NULL)
-  expect_error(Closure(null_ok = FALSE)(NULL))
+  expect_equal(Closure(allow_null = TRUE)(NULL), NULL)
+  expect_error(Closure(allow_null = FALSE)(NULL))
 })
 
 test_that("`Special` works", {
   expect_equal(Special()(`<-`), `<-`)
   expect_error(Special()(1))
 
-  expect_equal(Special(null_ok = TRUE)(NULL), NULL)
-  expect_error(Special(null_ok = FALSE)(NULL))
+  expect_equal(Special(allow_null = TRUE)(NULL), NULL)
+  expect_error(Special(allow_null = FALSE)(NULL))
 })
 
 test_that("`Builtin` works", {
   expect_equal(Builtin()(max), max)
   expect_error(Builtin()(1))
 
-  expect_equal(Builtin(null_ok = TRUE)(NULL), NULL)
-  expect_error(Builtin(null_ok = FALSE)(NULL))
+  expect_equal(Builtin(allow_null = TRUE)(NULL), NULL)
+  expect_error(Builtin(allow_null = FALSE)(NULL))
 })
 
 test_that("`Environment` works", {
   expect_equal(Environment()(.GlobalEnv), .GlobalEnv)
   expect_error(Environment()(1))
 
-  expect_equal(Environment(null_ok = TRUE)(NULL), NULL)
-  expect_error(Environment(null_ok = FALSE)(NULL))
+  expect_equal(Environment(allow_null = TRUE)(NULL), NULL)
+  expect_error(Environment(allow_null = FALSE)(NULL))
 })
 
 test_that("`Symbol` works", {
   expect_equal(Symbol()(quote(a)), quote(a))
   expect_error(Symbol()(1))
 
-  expect_equal(Symbol(null_ok = TRUE)(NULL), NULL)
-  expect_error(Symbol(null_ok = FALSE)(NULL))
+  expect_equal(Symbol(allow_null = TRUE)(NULL), NULL)
+  expect_error(Symbol(allow_null = FALSE)(NULL))
 })
 
 test_that("`Pairlist` works", {
@@ -143,16 +143,16 @@ test_that("`Pairlist` works", {
   expect_equal(Pairlist(each = Double())(y), y)
   expect_error(Pairlist(each = Integer())(y))
 
-  expect_equal(Pairlist(null_ok = TRUE)(NULL), NULL)
-  expect_error(Pairlist(null_ok = FALSE)(NULL))
+  expect_equal(Pairlist(allow_null = TRUE)(NULL), NULL)
+  expect_error(Pairlist(allow_null = FALSE)(NULL))
 })
 
 test_that("`Language` works", {
   expect_equal(Language()(quote(a + b)), quote(a + b))
   expect_error(Language()(1))
 
-  expect_equal(Language(null_ok = TRUE)(NULL), NULL)
-  expect_error(Language(null_ok = FALSE)(NULL))
+  expect_equal(Language(allow_null = TRUE)(NULL), NULL)
+  expect_error(Language(allow_null = FALSE)(NULL))
 })
 
 test_that("`Expression` works", {
@@ -162,16 +162,16 @@ test_that("`Expression` works", {
   expect_equal(Expression(1)(expression(a)), expression(a))
   expect_error(Expression(2)(expression(a)))
 
-  expect_equal(Expression(null_ok = TRUE)(NULL), NULL)
-  expect_error(Expression(null_ok = FALSE)(NULL))
+  expect_equal(Expression(allow_null = TRUE)(NULL), NULL)
+  expect_error(Expression(allow_null = FALSE)(NULL))
 })
 
 test_that("`Function` works", {
   expect_equal(Function()(mean), mean)
   expect_error(Function()(1))
 
-  expect_equal(Function(null_ok = TRUE)(NULL), NULL)
-  expect_error(Function(null_ok = FALSE)(NULL))
+  expect_equal(Function(allow_null = TRUE)(NULL), NULL)
+  expect_error(Function(allow_null = FALSE)(NULL))
 })
 
 test_that("`Factor` works", {
@@ -184,8 +184,8 @@ test_that("`Factor` works", {
   expect_equal(Factor(levels = "a")(factor("a")), factor("a"))
   expect_error(Factor(levels = "a")(factor("b")))
 
-  expect_equal(Factor(null_ok = TRUE)(NULL), NULL)
-  expect_error(Factor(null_ok = FALSE)(NULL))
+  expect_equal(Factor(allow_null = TRUE)(NULL), NULL)
+  expect_error(Factor(allow_null = FALSE)(NULL))
 })
 
 test_that("`Matrix` works", {
@@ -198,8 +198,8 @@ test_that("`Matrix` works", {
   expect_equal(Matrix(, 1)(matrix(1)), matrix(1))
   expect_error(Matrix(, 2)(matrix(1)))
 
-  expect_equal(Matrix(null_ok = TRUE)(NULL), NULL)
-  expect_error(Matrix(null_ok = FALSE)(NULL))
+  expect_equal(Matrix(allow_null = TRUE)(NULL), NULL)
+  expect_error(Matrix(allow_null = FALSE)(NULL))
 })
 
 test_that("`Array` works", {
@@ -209,8 +209,8 @@ test_that("`Array` works", {
   expect_equal(Array(c(1, 1))(matrix(1)), matrix(1))
   expect_error(Array(c(1, 2))(matrix(1)))
 
-  expect_equal(Array(null_ok = TRUE)(NULL), NULL)
-  expect_error(Array(null_ok = FALSE)(NULL))
+  expect_equal(Array(allow_null = TRUE)(NULL), NULL)
+  expect_error(Array(allow_null = FALSE)(NULL))
 })
 
 test_that("`Data.frame` works", {
@@ -238,8 +238,8 @@ test_that("`Data.frame` works", {
   )
   expect_error(Data.frame(each = Double())(data.frame(a = 1, b = 2L)))
 
-  expect_equal(Data.frame(null_ok = TRUE)(NULL), NULL)
-  expect_error(Data.frame(null_ok = FALSE)(NULL))
+  expect_equal(Data.frame(allow_null = TRUE)(NULL), NULL)
+  expect_error(Data.frame(allow_null = FALSE)(NULL))
 })
 
 test_that("`Date` works", {
@@ -250,8 +250,8 @@ test_that("`Date` works", {
   expect_equal(Date(1)(x), x)
   expect_error(Date(2)(x))
 
-  expect_equal(Date(null_ok = TRUE)(NULL), NULL)
-  expect_error(Date(null_ok = FALSE)(NULL))
+  expect_equal(Date(allow_null = TRUE)(NULL), NULL)
+  expect_error(Date(allow_null = FALSE)(NULL))
 })
 
 test_that("`Time` works", {
@@ -262,8 +262,8 @@ test_that("`Time` works", {
   expect_equal(Time(1)(x), x)
   expect_error(Time(2)(x))
 
-  expect_equal(Time(null_ok = TRUE)(NULL), NULL)
-  expect_error(Time(null_ok = FALSE)(NULL))
+  expect_equal(Time(allow_null = TRUE)(NULL), NULL)
+  expect_error(Time(allow_null = FALSE)(NULL))
 })
 
 test_that("`Dots` works", {

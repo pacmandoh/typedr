@@ -170,8 +170,8 @@ argument `length`.
 Here we restrict the length but keep other args flexible by forwarding them:
 
 ```{r, error = TRUE}
-ScalarInteger1 <- function(null_ok = FALSE, ...) {
-  Integer(length = 1, null_ok = null_ok, ...)
+ScalarInteger1 <- function(allow_null = FALSE, ...) {
+  Integer(length = 1, allow_null = allow_null, ...)
 }
 ScalarInteger1() ? x <- c(1L, 2L)
 ```
@@ -189,6 +189,34 @@ ScalarInteger2() ? x <- c(1L, 2L)
 ## Define your own types from scratch
 
 We can define a check function and use `as_assertion_factory()` on it.
+The check can be a simple predicate; typedr will turn `FALSE` into a structured
+`typedr_custom_assertion_error`. A custom `message` gives the generated error
+the same clarity as built-in typedr assertions.
+
+```{r, error = TRUE}
+Positive <- as_assertion_factory(
+  function(x) x > 0,
+  message = "`value` must be positive."
+)
+Positive() ? x <- -1
+```
+
+If you want to require predicate semantics explicitly, use
+`mode = "predicate"`.
+
+```{r, error = TRUE}
+NonEmpty <- as_assertion_factory(
+  function(x) length(x) > 0,
+  mode = "predicate"
+)
+NonEmpty() ? x <- character()
+```
+
+You can also write a richer check function. If it throws a base or rlang error,
+typedr wraps it in a standard typedr custom assertion error. When the original
+error already has a useful message, typedr uses that message directly instead
+of repeating it as both a wrapper and a parent error. If you omit `message`,
+typedr still reports the predicate expression it can infer, such as `value > 0`.
 
 ```{r, error = TRUE}
 check_is_ggplot <- function(x) {
