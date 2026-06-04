@@ -176,6 +176,19 @@ test_that("as_assertion_factory preserves existing typedr assertion errors", {
   expect_null(err$parent)
 })
 
+test_that("custom assertion errors use factory calls instead of generated wrappers", {
+  PositiveDouble <- as_assertion_factory(function(value) {
+    Double(length = 1)(value)
+    value
+  })
+
+  err <- rlang::catch_cnd(PositiveDouble()(1L), "error")
+
+  expect_s3_class(err, "typedr_type_mismatch")
+  expect_identical(err$call, quote(PositiveDouble()))
+  expect_no_match(conditionMessage(err), "`f()`", fixed = TRUE)
+})
+
 test_that("as_assertion_factory removes generated source refs when rethrowing typedr errors", {
   PositiveDouble <- as_assertion_factory(function(value) {
     value <- Double(length = 1)(value)
@@ -241,6 +254,21 @@ test_that("malformed dots fail with typedr input errors", {
 
 test_that("process_assertion_factory_dots handles empty dots", {
   expect_null(process_assertion_factory_dots())
+})
+
+test_that("additional assertion dots use factory calls instead of generated wrappers", {
+  any_named <- Any(anyNA = FALSE)
+  any_formula <- Any(... = ~ . > 0)
+
+  named_err <- rlang::catch_cnd(any_named(NA), "error")
+  formula_err <- rlang::catch_cnd(any_formula(-1), "error")
+
+  expect_s3_class(named_err, "typedr_custom_assertion_error")
+  expect_s3_class(formula_err, "typedr_custom_assertion_error")
+  expect_identical(named_err$call, quote(Any()))
+  expect_identical(formula_err$call, quote(Any()))
+  expect_no_match(conditionMessage(named_err), "`f()`", fixed = TRUE)
+  expect_no_match(conditionMessage(formula_err), "`f()`", fixed = TRUE)
 })
 
 test_that("process_assertion_factory_dots returns a block expression", {

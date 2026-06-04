@@ -40,7 +40,11 @@ as_assertion_factory <- function(
 
   # create a function with arguments being the additional args to f and dots
   f_call <- call2(expr(f), expr(value), !!!fn_fmls_syms(f)[-1])
-  dots_call <- call2("process_assertion_factory_dots", sym("..."))
+  dots_call <- call2(
+    "process_assertion_factory_dots",
+    sym("..."),
+    .typedr_assertion_call = sym(".typedr_assertion_call")
+  )
   predicate <- .typedr_predicate_label(f)
   message_expr <- if (is_null(message)) quote(NULL) else message
   predicate_expr <- if (is_null(predicate)) quote(NULL) else predicate
@@ -48,6 +52,7 @@ as_assertion_factory <- function(
   res <- new_function(
     pairlist2(!!!fn_fmls(f)[-1], ... = ),
     expr({
+      .typedr_assertion_call <- .typedr_factory_call(sys.function())
       .typedr_factory_mode <- !!mode
       .typedr_factory_message <- !!message_expr
       .typedr_factory_predicate <- !!predicate_expr
@@ -65,7 +70,7 @@ as_assertion_factory <- function(
             mode = MODE,
             message = MESSAGE,
             predicate = PREDICATE,
-            call = quote(F_CALL)
+            call = .typedr_assertion_call
           ),
           list(
             F_CALL = f_call,
@@ -94,6 +99,23 @@ as_assertion_factory <- function(
   attr(res, "typedr_type_function") <- f
   environment(res) <- caller_env()
   res
+}
+
+.typedr_factory_call <- function(factory) {
+  env <- environment(factory)
+  if (is_null(env)) {
+    return(NULL)
+  }
+
+  nms <- names(env)
+  for (nm in nms) {
+    candidate <- try_fetch(get(nm, envir = env, inherits = FALSE), error = identity)
+    if (!inherits(candidate, "error") && identical(candidate, factory)) {
+      return(call2(nm))
+    }
+  }
+
+  NULL
 }
 
 .typedr_predicate_label <- function(f) {
@@ -222,10 +244,15 @@ as_assertion_factory <- function(
 #' @return A `{` expression containing the generated checks, or `NULL` when no
 #'   conditions are supplied.
 #' @export
-process_assertion_factory_dots <- function(...) {
+process_assertion_factory_dots <- function(..., .typedr_assertion_call = NULL) {
   args <- list(...)
   if (!length(args)) {
     return(NULL)
+  }
+  assertion_call <- if (is_null(.typedr_assertion_call)) {
+    quote(NULL)
+  } else {
+    call2("quote", .typedr_assertion_call)
   }
   nms <- names2(args)
   exprs <- vector("list", length(args))
@@ -249,7 +276,8 @@ process_assertion_factory_dots <- function(...) {
               "typedr_custom_assertion_error",
               "typedr_assertion_error",
               "typedr_error"
-            )
+            ),
+            call = .(assertion_call)
           )
         }
       )
@@ -296,7 +324,8 @@ process_assertion_factory_dots <- function(...) {
               "typedr_custom_assertion_error",
               "typedr_assertion_error",
               "typedr_error"
-            )
+            ),
+            call = .(assertion_call)
           )
         }
       )

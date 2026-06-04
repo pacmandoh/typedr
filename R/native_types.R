@@ -110,6 +110,89 @@
 #' symbol_list2(x, x + y)
 #' symbol_list2(x, y)
 #' }
+
+.typedr_plural <- function(x) {
+  paste0(x, "s")
+}
+
+.typedr_each_failure_label <- function(i, name, kind) {
+  if (name == "") {
+    sprintf("%s %s", kind, i)
+  } else {
+    sprintf('%s %s ("%s")', kind, i, name)
+  }
+}
+
+.typedr_check_each <- function(
+  value,
+  each,
+  kind = "element",
+  class = "typedr_element_error",
+  max_failures = 5L
+) {
+  nms <- names2(value)
+  failures <- character()
+  first_error <- NULL
+  failure_count <- 0L
+
+  for (i in seq_along(value)) {
+    err <- try_fetch(
+      {
+        each(value[[i]])
+        NULL
+      },
+      error = identity
+    )
+
+    if (inherits(err, "error")) {
+      failure_count <- failure_count + 1L
+      first_error <- first_error %||% err
+      if (length(failures) < max_failures) {
+        failures <- c(failures, .typedr_each_failure_label(i, nms[[i]], kind))
+      }
+    }
+  }
+
+  if (failure_count == 0L) {
+    return(invisible(NULL))
+  }
+
+  if (failure_count == 1L) {
+    .typedr_abort_assertion(
+      sprintf("%s failed assertion.", failures[[1]]),
+      class = class,
+      parent = first_error
+    )
+  }
+
+  remaining <- failure_count - length(failures)
+  failure_list <- paste(failures, collapse = ", ")
+  if (remaining > 0L) {
+    failure_list <- paste0(failure_list, sprintf(", and %s more", remaining))
+  }
+
+  .typedr_abort_assertion(
+    c(
+      sprintf(
+        "%s %s failed assertion.",
+        failure_count,
+        .typedr_plural(kind)
+      ),
+      "x" = sprintf(
+        "%s failed: %s.",
+        .capitalize(.typedr_plural(kind)),
+        failure_list
+      ),
+      "i" = sprintf(
+        "Showing at most %s failures; the parent error shows the first failure.",
+        max_failures
+      )
+    ),
+    class = class,
+    parent = first_error
+  )
+}
+
 Any <- as_assertion_factory(
   function(value, length = NULL) {
     if (!is_null(length) && length(value) != length) {
@@ -336,24 +419,7 @@ List <- as_assertion_factory(
     }
 
     if (!is_missing(each)) {
-      nms <- names2(value)
-      for (i in seq_along(value)) {
-        try_fetch(each(value[[i]]), error = function(e) {
-          if (nms[[i]] == "") {
-            .typedr_abort_assertion(
-              sprintf("element %s failed assertion.", i),
-              class = "typedr_element_error",
-              parent = e
-            )
-          } else {
-            .typedr_abort_assertion(
-              sprintf('element %s ("%s") failed assertion.', i, nms[[i]]),
-              class = "typedr_element_error",
-              parent = e
-            )
-          }
-        })
-      }
+      .typedr_check_each(value, each)
     }
 
     if (!data_frame_ok && is.data.frame(value)) {
@@ -528,24 +594,7 @@ Pairlist <- as_assertion_factory(
       ))
     }
     if (!is_missing(each)) {
-      nms <- names2(value)
-      for (i in seq_along(value)) {
-        try_fetch(each(value[[i]]), error = function(e) {
-          if (nms[[i]] == "") {
-            .typedr_abort_assertion(
-              sprintf("element %s failed assertion.", i),
-              class = "typedr_element_error",
-              parent = e
-            )
-          } else {
-            .typedr_abort_assertion(
-              sprintf('element %s ("%s") failed assertion.', i, nms[[i]]),
-              class = "typedr_element_error",
-              parent = e
-            )
-          }
-        })
-      }
+      .typedr_check_each(value, each)
     }
     if (!is_null(length) && length(value) != length) {
       length <- as.integer(length)
@@ -741,16 +790,7 @@ Data.frame <- as_assertion_factory(
     }
 
     if (!is_missing(each)) {
-      nms <- names2(value)
-      for (i in seq_along(value)) {
-        try_fetch(each(value[[i]]), error = function(e) {
-          .typedr_abort_assertion(
-            sprintf('column %s ("%s") failed assertion.', i, nms[[i]]),
-            class = "typedr_column_error",
-            parent = e
-          )
-        })
-      }
+      .typedr_check_each(value, each, kind = "column", class = "typedr_column_error")
     }
     value
   }
@@ -924,24 +964,7 @@ Dots <- as_assertion_factory(
     }
 
     if (!is_missing(each)) {
-      nms <- names2(value)
-      for (i in seq_along(value)) {
-        try_fetch(each(value[[i]]), error = function(e) {
-          if (nms[[i]] == "") {
-            .typedr_abort_assertion(
-              sprintf("element %s failed assertion.", i),
-              class = "typedr_element_error",
-              parent = e
-            )
-          } else {
-            .typedr_abort_assertion(
-              sprintf('element %s ("%s") failed assertion.', i, nms[[i]]),
-              class = "typedr_element_error",
-              parent = e
-            )
-          }
-        })
-      }
+      .typedr_check_each(value, each)
     }
     value
   }

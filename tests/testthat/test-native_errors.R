@@ -38,6 +38,40 @@ test_that("native assertions use typed mismatch classes", {
   expect_typedr_error(Time()(1), "typedr_type_mismatch")
 })
 
+test_that("native assertion errors never expose generated wrapper calls", {
+  cases <- list(
+    Logical = function() Logical()(1),
+    Integer = function() Integer()(1),
+    Double = function() Double()(1L),
+    Character = function() Character()(1),
+    Raw = function() Raw()(1),
+    List = function() List()(1),
+    Null = function() Null()(1),
+    Closure = function() Closure()(1),
+    Special = function() Special()(1),
+    Builtin = function() Builtin()(1),
+    Environment = function() Environment()(1),
+    Symbol = function() Symbol()(1),
+    Pairlist = function() Pairlist()(1),
+    Language = function() Language()(1),
+    Expression = function() Expression()(1),
+    Function = function() Function()(1),
+    Factor = function() Factor()(1),
+    Matrix = function() Matrix()(1),
+    Array = function() Array()(1),
+    Data.frame = function() Data.frame()(1),
+    Date = function() Date()(1),
+    Time = function() Time()(1)
+  )
+
+  for (name in names(cases)) {
+    err <- rlang::catch_cnd(cases[[name]](), "error")
+
+    expect_no_match(conditionMessage(err), "`f()`", fixed = TRUE)
+    expect_identical(err$call, as.call(list(as.name(name))))
+  }
+})
+
 test_that("native assertions use length, shape, and null mismatch classes", {
   expect_typedr_error(Any(2)(1), "typedr_length_mismatch")
   expect_typedr_error(Logical(2)(TRUE), "typedr_length_mismatch")
@@ -81,10 +115,13 @@ test_that("container each failures preserve parent assertion errors", {
     "typedr_column_error"
   )
   expect_s3_class(data_frame_err$parent, "typedr_type_mismatch")
+  expect_identical(data_frame_err$call, quote(Data.frame()))
+  expect_identical(data_frame_err$parent$call, quote(Double()))
   expect_match(
     conditionMessage(data_frame_err),
     'column 1 \\("a"\\) failed assertion'
   )
+  expect_no_match(conditionMessage(data_frame_err), "`f()`", fixed = TRUE)
 
   dots_err <- expect_typedr_error(
     Dots(each = Double())(list(1L)),
@@ -92,6 +129,62 @@ test_that("container each failures preserve parent assertion errors", {
   )
   expect_s3_class(dots_err$parent, "typedr_type_mismatch")
   expect_match(conditionMessage(dots_err), "element 1 failed assertion")
+})
+
+test_that("nested assertion errors hide generated factory wrapper calls", {
+  err <- rlang::catch_cnd(Data.frame(each = Double()) ? x <- iris, "error")
+
+  expect_s3_class(err, "typedr_initial_error")
+  expect_identical(err$parent$call, quote(Data.frame(each = Double())))
+  expect_identical(err$parent$parent$call, quote(Double()))
+  expect_match(conditionMessage(err), "Caused by error in `Double()`", fixed = TRUE)
+  expect_no_match(conditionMessage(err), "`f()`", fixed = TRUE)
+})
+
+test_that("container each failures are summarized when many items fail", {
+  df <- as.data.frame(setNames(rep(list(1L), 6), letters[1:6]))
+  data_frame_err <- expect_typedr_error(
+    Data.frame(each = Double())(df),
+    "typedr_column_error"
+  )
+
+  expect_match(conditionMessage(data_frame_err), "6 columns failed assertion.", fixed = TRUE)
+  expect_match(conditionMessage(data_frame_err), 'column 1 ("a")', fixed = TRUE)
+  expect_match(conditionMessage(data_frame_err), 'column 5 ("e")', fixed = TRUE)
+  expect_match(conditionMessage(data_frame_err), "and 1 more", fixed = TRUE)
+  expect_no_match(conditionMessage(data_frame_err), 'column 6 ("f")', fixed = TRUE)
+  expect_identical(data_frame_err$parent$call, quote(Double()))
+
+  list_err <- expect_typedr_error(
+    List(each = Double())(setNames(rep(list(1L), 6), letters[1:6])),
+    "typedr_element_error"
+  )
+  expect_match(conditionMessage(list_err), "6 elements failed assertion.", fixed = TRUE)
+  expect_match(conditionMessage(list_err), 'element 5 ("e")', fixed = TRUE)
+  expect_match(conditionMessage(list_err), "and 1 more", fixed = TRUE)
+  expect_no_match(conditionMessage(list_err), "`f()`", fixed = TRUE)
+
+  pairlist_err <- expect_typedr_error(
+    Pairlist(each = Double())(as.pairlist(setNames(rep(list(1L), 6), letters[1:6]))),
+    "typedr_element_error"
+  )
+  expect_match(conditionMessage(pairlist_err), "6 elements failed assertion.", fixed = TRUE)
+
+  dots_err <- expect_typedr_error(
+    Dots(each = Double())(setNames(rep(list(1L), 6), letters[1:6])),
+    "typedr_element_error"
+  )
+  expect_match(conditionMessage(dots_err), "6 elements failed assertion.", fixed = TRUE)
+})
+
+test_that("assertion factory call inference falls back cleanly", {
+  expect_null(.typedr_factory_call(length))
+
+  factory <- Double
+  env <- new.env(parent = emptyenv())
+  environment(factory) <- env
+
+  expect_null(.typedr_factory_call(factory))
 })
 
 test_that("get_assertion failures are tidy typedr errors", {
