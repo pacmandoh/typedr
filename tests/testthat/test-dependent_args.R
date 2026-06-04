@@ -172,6 +172,24 @@ test_that("dependent fallbacks warn when inactive arguments are supplied", {
   expect_error(f(a1 = 1L, a2 = 1L), class = "typedr_dependency_error")
 })
 
+test_that("inactive omitted dependent arguments are safe to read", {
+  f <- ? function(
+    a1 = NULL ? (Null() | Integer()),
+    a2 = ? !a1:Missing() ~ Double() / Warning()
+  ) {
+    a2
+  }
+
+  expect_null(f())
+  expect_null(f(a1 = NULL))
+  expect_warning(
+    expect_equal(f(a2 = 1), 1),
+    class = "typedr_dependency_inactive_warning"
+  )
+  expect_equal(f(a1 = 1L, a2 = 1), 1)
+  expect_error(f(a1 = 1L), class = "typedr_missing_argument_error")
+})
+
 test_that("dependent fallbacks error when inactive arguments are supplied", {
   f <- ? function(
     a1 = NULL ? (Null() | Integer()),

@@ -179,7 +179,11 @@ check_dependent_arg <- function(
   .inactive <- arg_match(.inactive)
 
   if (!typedr_eval_guard(guard_expr, call)) {
-    if (.inactive != "ignore" && !is_missing(.arg)) {
+    arg_missing <- is_missing(.arg)
+    if (arg_missing) {
+      env_bind(call, !!!set_names(list(NULL), var_nm))
+    }
+    if (.inactive != "ignore" && !arg_missing) {
       typedr_inactive_arg_cnd(
         var_nm,
         guard_expr,
