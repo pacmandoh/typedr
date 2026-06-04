@@ -17,7 +17,7 @@ test_that("typedr function printing shows body, return, args, and helper wrapper
   expect_match(out, "<typedr function>", fixed = TRUE)
   expect_match(out, "Return: <Character()>", fixed = TRUE)
   expect_match(out, "`a1`: <Double()>", fixed = TRUE)
-  expect_match(out, "default: 1", fixed = TRUE)
+  expect_match(out, "(default: 1)", fixed = TRUE)
 
   fold_f <- ? function(a = ? Double(), b = ? Double(), c = ? Double()) a + b + c
   options(typedr.print.max_args = 2)
@@ -137,6 +137,47 @@ test_that("typedr value printing previews common types, empties, and truncation"
 
   declare("x_time", Time(), value = as.POSIXct("2026-06-01 12:34:56", tz = "UTC"))
   expect_match(capture_typedr_cli(print(x_time)), "POSIXct", fixed = TRUE)
+
+  declare("x_expr", Expression(1), value = expression(amount / 100))
+  expr_out <- capture_typedr_cli(print(x_expr))
+  expect_match(expr_out, "value: <expression> [1]", fixed = TRUE)
+  expect_match(expr_out, "amount / 100", fixed = TRUE)
+
+  declare("x_empty_expr", Expression(), value = expression())
+  expect_match(
+    capture_typedr_cli(print(x_empty_expr)),
+    "data: c()",
+    fixed = TRUE
+  )
+
+  declare("x_long_expr", Expression(), value = expression(a, b, c))
+  expect_match(
+    capture_typedr_cli(print(x_long_expr, max_items = 1)),
+    "more expressions",
+    fixed = TRUE
+  )
+
+  declare("x_pairlist", Pairlist(), value = formals(function(x) x))
+  pairlist_out <- capture_typedr_cli(print(x_pairlist))
+  expect_match(pairlist_out, "value: <pairlist> [1]", fixed = TRUE)
+  expect_match(pairlist_out, "$x", fixed = TRUE)
+
+  declare(
+    "x_long_pairlist",
+    Pairlist(),
+    value = formals(function(a, b, c, d, e) TRUE)
+  )
+  expect_match(
+    capture_typedr_cli(print(x_long_pairlist, max_items = 1)),
+    "more lines",
+    fixed = TRUE
+  )
+
+  declare("x_closure", Closure(), value = function(x) sqrt(x))
+  closure_out <- capture_typedr_cli(print(x_closure))
+  expect_match(closure_out, "value: <closure>", fixed = TRUE)
+  expect_match(closure_out, "args: x", fixed = TRUE)
+  expect_match(closure_out, "sqrt(x)", fixed = TRUE)
 
   declare("x_matrix", Matrix(), value = matrix(1:4, nrow = 2))
   expect_match(capture_typedr_cli(print(x_matrix)), "[1,]", fixed = TRUE)

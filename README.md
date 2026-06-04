@@ -315,7 +315,7 @@ add
 #> Return: <Any()>
 #> Arguments:
 #> • `x`: <Double()>
-#> • `y`: <Double()> -> default: 1
+#> • `y`: <Double()> (default: 1)
 ```
 
 Let’s test it by providing a right and wrong type.
@@ -351,7 +351,7 @@ add
 #> Return: <Any()>
 #> Arguments:
 #> • `x`: <Double()>
-#> • `y`: <Double()> -> default: 1
+#> • `y`: <Double()> (default: 1)
 ```
 
 We see that it is translated into a `check_arg` call containing a

@@ -119,7 +119,7 @@ print.typedr <- function(x, ...) {
         }
         if (nzchar(def_val)) {
           format_inline(
-            "{.arg {arg}}: {.cls {cls}} {col_green('->')} {.emph default: {.field {def_val}}}"
+            "{.arg {arg}}: {.cls {cls}} {.emph (default: {.field {def_val}})}"
           )
         } else {
           format_inline("{.arg {arg}}: {.cls {cls}}")
@@ -205,6 +205,22 @@ print.typedr_value <- function(
       return("c()")
     }
     paste(preview_classed_items(utils::head(v, n)), collapse = ", ")
+  }
+
+  preview_expr <- function(expr) {
+    paste(expr_deparse(expr), collapse = " ")
+  }
+
+  preview_expression <- function(v, n = 10) {
+    len <- length(v)
+    if (len == 0) {
+      return("c()")
+    }
+    idx <- seq_len(min(len, n))
+    paste(
+      vapply(as.list(v)[idx], preview_expr, character(1)),
+      collapse = ", "
+    )
   }
 
   print_classed_atomic <- function(v, type, n = 10) {
@@ -525,6 +541,42 @@ print.typedr_value <- function(
     character()
   }
 
+  print_expression <- function(v, n = 10) {
+    len <- length(v)
+    cli_text("{.field value}: {.cls expression} [{format_len(len)}]")
+    cli_text("{.field data}: {preview_expression(v, n)}")
+    if (!full_value && len > n) {
+      mark_truncated()
+      cli_text(col_grey(format_inline(
+        "{.emph # ... with {format_len(len - n)} more expressions}"
+      )))
+    }
+  }
+
+  print_pairlist <- function(v, n = 10) {
+    len <- length(v)
+    cli_text("{.field value}: {.cls pairlist} [{format_len(len)}]")
+    lines <- utils::capture.output(print(v))
+    if (length(lines)) {
+      cli_verbatim(utils::head(lines, n))
+    }
+    if (!full_value && length(lines) > n) {
+      mark_truncated()
+      cli_text(col_grey(format_inline(
+        "{.emph # ... with {format_len(length(lines) - n)} more lines}"
+      )))
+    }
+  }
+
+  print_function_value <- function(v) {
+    cli_text("{.field value}: {.cls closure}")
+    fmls <- names2(fn_fmls(v))
+    cli_text(
+      "{.field args}: {if (length(fmls)) paste(fmls, collapse = ', ') else col_grey('<none>')}"
+    )
+    cli_text("{.field body}: {preview_expr(fn_body(v))}")
+  }
+
   preview_list_items <- function(v, n = 10, depth = 1L, max_depth = 2L) {
     len <- length(v)
     if (len == 0) {
@@ -606,6 +658,12 @@ print.typedr_value <- function(
     print_classed_atomic(untyped, "POSIXct", max_items)
   } else if (inherits(untyped, "Date")) {
     print_classed_atomic(untyped, "Date", max_items)
+  } else if (typeof(untyped) == "expression") {
+    print_expression(untyped, max_items)
+  } else if (typeof(untyped) == "pairlist") {
+    print_pairlist(untyped, max_items)
+  } else if (typeof(untyped) == "closure") {
+    print_function_value(untyped)
   } else if (is.matrix(untyped)) {
     cli_text(
       "{.field value}: {.cls {typeof(untyped)} matrix} {format_len(nrow(untyped))} x {format_len(ncol(untyped))}"
