@@ -4,11 +4,14 @@
 \alias{process_assertion_factory_dots}
 \title{Process additional assertion conditions}
 \usage{
-process_assertion_factory_dots(...)
+process_assertion_factory_dots(..., .typedr_assertion_call = NULL)
 }
 \arguments{
 \item{...}{Additional assertion conditions. Named arguments compare
 \code{name(value)} with the supplied value; unnamed arguments must be formulas.}
+
+\item{.typedr_assertion_call}{Internal assertion call used in generated error
+messages.}
 }
 \value{
 A \verb{\{} expression containing the generated checks, or \code{NULL} when no
