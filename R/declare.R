@@ -510,11 +510,12 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
       env = f_env
     )
   } else {
+    env_bind(f_env, .typedr_assertion_expr = assertion_quoted)
+
     f <- eval_bare(
       expr(
         local({
           val <- !!value
-          assertion_expr <- !!call2("quote", assertion_quoted)
           function(assigned_value) {
             if (!is_missing(assigned_value)) {
               tmp <- try_fetch(
@@ -522,7 +523,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
                 error = identity
               )
               rt_assertion <- attr(val, "typedr_assertion", exact = TRUE) %||%
-                assertion_expr
+                .typedr_assertion_expr
               if (inherits(tmp, "error")) {
                 tmp$call <- rt_assertion
                 cli_abort(
