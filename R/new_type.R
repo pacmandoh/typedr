@@ -241,6 +241,8 @@ as_assertion_factory <- function(
 #'
 #' @param ... Additional assertion conditions. Named arguments compare
 #'   `name(value)` with the supplied value; unnamed arguments must be formulas.
+#' @param .typedr_assertion_call Internal assertion call used in generated error
+#'   messages.
 #' @return A `{` expression containing the generated checks, or `NULL` when no
 #'   conditions are supplied.
 #' @export
