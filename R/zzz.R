@@ -1,6 +1,3 @@
-# Register dynamically scoped values used by generated active bindings.
-utils::globalVariables(".typedr_assertion_expr")
-
 # deal with the conflicting `?` in the  devtools_shims env
 # follow up in https://github.com/r-lib/pkgload/issues/265
 # nocov start
