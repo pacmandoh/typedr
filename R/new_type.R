@@ -69,7 +69,9 @@
 
   for (label in labels) {
     candidate <- paste(c(shown, label), collapse = separator)
-    if (length(shown) >= max_items || nchar(candidate, type = "width") > max_chars) {
+    if (
+      length(shown) >= max_items || nchar(candidate, type = "width") > max_chars
+    ) {
       break
     }
     shown <- c(shown, label)
@@ -199,7 +201,10 @@ as_assertion_factory <- function(
 
   nms <- names(env)
   for (nm in nms) {
-    candidate <- try_fetch(get(nm, envir = env, inherits = FALSE), error = identity)
+    candidate <- try_fetch(
+      get(nm, envir = env, inherits = FALSE),
+      error = identity
+    )
     if (!inherits(candidate, "error") && identical(candidate, factory)) {
       return(call2(nm))
     }

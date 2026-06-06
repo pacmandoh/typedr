@@ -160,7 +160,8 @@ print.typedr_value <- function(
   }
 
   # Strip typedr_value metadata before inspecting the underlying value.
-  if (.typedr_is_wrapped_null(x)) { # R/utils.R
+  if (.typedr_is_wrapped_null(x)) {
+    # R/utils.R
     untyped <- NULL
   } else {
     untyped <- structure(x, class = setdiff(class(x), "typedr_value"))
