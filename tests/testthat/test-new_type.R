@@ -130,7 +130,11 @@ test_that("as_assertion_factory wraps ordinary errors without repeated parents",
   expect_s3_class(same_msg_err, "typedr_custom_assertion_error")
   expect_null(same_msg_err$parent)
   expect_equal(
-    length(gregexpr("plain failure", conditionMessage(same_msg_err), fixed = TRUE)[[1]]),
+    length(gregexpr(
+      "plain failure",
+      conditionMessage(same_msg_err),
+      fixed = TRUE
+    )[[1]]),
     1L
   )
 

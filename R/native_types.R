@@ -578,7 +578,12 @@ Data.frame <- as_assertion_factory(
     .typedr_check_shape(value, nrow, ncol)
 
     if (!is_missing(each)) {
-      .typedr_check_each(value, each, kind = "column", class = "typedr_column_error")
+      .typedr_check_each(
+        value,
+        each,
+        kind = "column",
+        class = "typedr_column_error"
+      )
     }
     value
   }
