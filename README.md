@@ -1,7 +1,7 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/pacmandoh/typedr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pacmandoh/typedr/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/pacmandoh/typedr/actions/workflows/package-check.yaml/badge.svg)](https://github.com/pacmandoh/typedr/actions/workflows/package-check.yaml)
 [![Codecov test
 coverage](https://codecov.io/gh/pacmandoh/typedr/branch/main/graph/badge.svg)](https://codecov.io/gh/pacmandoh/typedr?branch=main)
 <!-- badges: end -->

@@ -3,10 +3,9 @@ output: github_document
 ---
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/pacmandoh/typedr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pacmandoh/typedr/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/pacmandoh/typedr/actions/workflows/package-check.yaml/badge.svg)](https://github.com/pacmandoh/typedr/actions/workflows/package-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/pacmandoh/typedr/branch/main/graph/badge.svg)](https://codecov.io/gh/pacmandoh/typedr?branch=main)
 <!-- badges: end -->
-
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -67,7 +66,7 @@ or development version with :
 remotes::install_github("pacmandoh/typedr")
 ```
 
-And attach with : 
+And attach with :
 
 ```{r}
 # masking warning about overriding `?`
@@ -78,7 +77,7 @@ library(typedr, warn.conflicts = FALSE)
 
 ### Question mark notation and `declare`
 
-Here are examples on how we would set types 
+Here are examples on how we would set types
 
 ```{r}
 Character() ? x # restrict x to "character" type
@@ -135,8 +134,8 @@ We call `Integer(3)` and `Character()` assertions, and we call
 `Integer` and `Character` assertion factories. They are also called types, but
 should not be confused with the atomic types returned by `typeof()`.
 
-The package contains many assertion factories (see `?assertion_factories`), 
-the main ones are: 
+The package contains many assertion factories (see `?assertion_factories`),
+the main ones are:
 
 * `Any` (No default restriction)
 * `Logical`
@@ -197,7 +196,7 @@ the expected result.
 Integer(anyNA = FALSE) ? x <- c(1L, 2L, NA)
 ```
 
-Useful arguments might be for instance, `anyDuplicated = 0L`, `names = NULL`, 
+Useful arguments might be for instance, `anyDuplicated = 0L`, `names = NULL`,
 `attributes = NULL`... Any available function can be used.
 
 That makes assertion factories very flexible. If that is still not flexible
@@ -234,7 +233,7 @@ every repeated failure.
 
 ### Constants
 
-To define a constant, we just surround the variable by parentheses (think of 
+To define a constant, we just surround the variable by parentheses (think of
 them as a protection)
 
 ```{r}
@@ -248,8 +247,7 @@ y <- 2
 
 ### Set a function's argument type
 
-We can set argument types this way : 
-
+We can set argument types this way :
 
 ```{r}
 add <- ? function (x= ? Double(), y= 1 ? Double()) {
@@ -361,7 +359,7 @@ when the guard matches but the dependent type check fails.
 
 ## Set a function's return type
 
-To set a return type we use `?` before the function definition as in the previous section, 
+To set a return type we use `?` before the function definition as in the previous section,
 but we type an assertion on the left hand side.
 
 ```{r}
