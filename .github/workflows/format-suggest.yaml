@@ -16,11 +16,11 @@ on:
   # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
   pull_request_target:
 
-name: format-suggest.yaml
+name: Format suggest
 
 jobs:
   format-suggest:
-    name: format-suggest
+    name: Format suggest
     runs-on: ubuntu-latest
 
     permissions:
