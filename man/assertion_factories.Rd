@@ -84,7 +84,9 @@ Dots(length = NULL, each, ...)
 \item{allow_null}{Whether \code{NULL} values should be accepted and not subjected to
 any further check.}
 
-\item{each}{Assertion that every item or column must satisfy.}
+\item{each}{Assertion that every item or column must satisfy. When several
+items fail, typedr reports the first location and the number of remaining
+failures while preserving the first underlying error as the parent.}
 
 \item{data_frame_ok}{Whether data frames should be accepted by \code{List()}.}
 
@@ -104,10 +106,10 @@ These functions are assertion factories: they produce assertions that take an
 object, check conditions, and return the input, usually unmodified. The
 assertion factories documented here never modify their inputs.
 
-The factory names and the general assertion-factory pattern follow the original
-\href{https://github.com/moodymudskipper/typed}{typed} package. typedr keeps
-that interface and modernizes the implementation with rlang predicates, cli
-errors, and typed condition classes.
+The factory names and the general assertion-factory pattern follow the
+original \href{https://github.com/moodymudskipper/typed}{typed} package. typedr
+keeps that interface and modernizes the implementation with rlang predicates,
+cli errors, and typed condition classes.
 
 Additional conditions can be provided through \code{...}:
 \itemize{
@@ -193,5 +195,4 @@ symbol_list2 <- ? function(... = ?~ Dots(2, Symbol())) {
 symbol_list2(x, x + y)
 symbol_list2(x, y)
 }
-
 }

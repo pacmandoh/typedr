@@ -172,6 +172,29 @@ test_that("dependent fallbacks warn when inactive arguments are supplied", {
   expect_error(f(a1 = 1L, a2 = 1L), class = "typedr_dependency_error")
 })
 
+test_that("dependent argument diagnostics truncate long guards", {
+  long_guard <- quote(
+    a1:Integer() |
+      a2:Character() |
+      a3:Double() |
+      a4:Logical() |
+      a5:Raw()
+  )
+  warning <- rlang::catch_cnd(
+    typedr_inactive_arg_cnd(
+      "value",
+      long_guard,
+      severity = "warning",
+      call = current_env()
+    ),
+    "warning"
+  )
+  lines <- strsplit(conditionMessage(warning), "\n", fixed = TRUE)[[1]]
+
+  expect_true(all(nchar(lines, type = "width") < 140L))
+  expect_match(conditionMessage(warning), "...", fixed = TRUE)
+})
+
 test_that("inactive omitted dependent arguments are safe to read", {
   f <- ? function(
     a1 = NULL ? (Null() | Integer()),

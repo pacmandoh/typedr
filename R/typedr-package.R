@@ -10,7 +10,9 @@
 #' factories, typed functions, and active bindings for assignment checks. The
 #' implementation has been refreshed around rlang and cli so expression
 #' handling, condition metadata, error messages, and print output are more
-#' structured and easier to inspect.
+#' structured and easier to inspect. Diagnostics use public assertion names,
+#' summarize repeated failures, and shorten long labels or values so generated
+#' implementation details do not dominate the message.
 #'
 #' @section Relationship with typed:
 #' typedr is derived from and deeply grateful to

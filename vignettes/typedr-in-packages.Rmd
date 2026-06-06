@@ -30,6 +30,12 @@ developer experience: typedr uses {rlang} and {cli} throughout the refactor, so
 errors have structured typedr classes and printed typed objects are easier to
 read.
 
+Error messages also use the public assertion-factory call instead of generated
+wrapper names. Repeated `each` failures report the first failed item or column
+plus the remaining count, and long diagnostic labels or values are shortened.
+Exceptionally long parent calls use the neutral `Type()` label. The first
+underlying error remains available as the parent condition.
+
 ## Use {typedr} in your package
 
 Call this to set up your package so you can use 'typedr', by editing the
@@ -217,6 +223,8 @@ typedr wraps it in a standard typedr custom assertion error. When the original
 error already has a useful message, typedr uses that message directly instead
 of repeating it as both a wrapper and a parent error. If you omit `message`,
 typedr still reports the predicate expression it can infer, such as `value > 0`.
+For long predicates and values, the diagnostic preview is shortened; this does
+not alter the value passed to the check or the structured condition classes.
 
 ```{r, error = TRUE}
 check_is_ggplot <- function(x) {

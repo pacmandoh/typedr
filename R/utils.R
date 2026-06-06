@@ -86,19 +86,15 @@ type_printer <- function(type, printer) {
   format_inline("{.cls {typedr}()}")
 }
 
-.typedr_deparse <- function(x) {
-  paste(deparse(x, width.cutoff = 60L), collapse = "\n")
-}
-
 .typedr_compare <- function(actual, expected, x_arg, y_arg = "expected") {
   paste0(
     "`",
-    x_arg,
+    .typedr_truncate_text(x_arg, max_chars = 40L),
     "`: ",
     col_green(.typedr_deparse(actual)),
     ", ",
     "`",
-    y_arg,
+    .typedr_truncate_text(y_arg, max_chars = 40L),
     "`: ",
     col_green(.typedr_deparse(expected))
   )

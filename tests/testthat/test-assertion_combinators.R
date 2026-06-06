@@ -61,6 +61,71 @@ test_that("typedr assertions support cascaded unions", {
   expect_error(scalar_value(list(1)), class = "typedr_union_error")
 })
 
+test_that("union errors summarize long candidate lists", {
+  many_types <- Integer() |
+    Double() |
+    Character() |
+    Logical() |
+    Raw() |
+    List()
+
+  err <- rlang::catch_cnd(many_types(environment()), "error")
+  message <- conditionMessage(err)
+
+  expect_match(message, "Integer() | Double() | Character()", fixed = TRUE)
+  expect_match(message, "... (3 more)", fixed = TRUE)
+  expect_no_match(message, "Logical()", fixed = TRUE)
+
+  assertion_expr <- quote(
+    Integer() | Double() | Character() | Logical() | Raw() | List()
+  )
+  return_err <- rlang::catch_cnd(
+    check_output(
+      environment(),
+      many_types,
+      .assertion_expr = assertion_expr
+    ),
+    "error"
+  )
+  expect_identical(return_err$parent$call, quote(Type()))
+  expect_match(
+    conditionMessage(return_err),
+    "Integer() | Double() | ... (4 more)",
+    fixed = TRUE
+  )
+  expect_no_match(conditionMessage(return_err), "Raw(...", fixed = TRUE)
+})
+
+test_that("long intersection labels use semantic summaries", {
+  assertion_expr <- quote(
+    Integer() &
+      Any(... = ~ . > 0L) &
+      Any(... = ~ . < 10L) &
+      Any(anyNA = FALSE)
+  )
+  assertion <- Integer() &
+    Any(... = ~ . > 0L) &
+    Any(... = ~ . < 10L) &
+    Any(anyNA = FALSE)
+
+  err <- rlang::catch_cnd(
+    check_output(1, assertion, .assertion_expr = assertion_expr),
+    "error"
+  )
+
+  expect_identical(err$parent$call, quote(Type()))
+  expect_match(
+    conditionMessage(err),
+    "Integer() & Any(... = ~ . > 0L) & ... (2 more)",
+    fixed = TRUE
+  )
+  expect_match(
+    conditionMessage(err),
+    "Failed constraint: Integer() & Any(... = ~ . > 0L) & ... (1 more)",
+    fixed = TRUE
+  )
+})
+
 test_that("typedr assertions support cascaded intersections", {
   small_positive_integer <- Integer() &
     Any(... = ~ . > 0L) &

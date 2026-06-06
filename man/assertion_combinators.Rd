@@ -31,5 +31,6 @@ is usually clearer in function signatures.
 \details{
 Combined assertions can be used anywhere a regular typedr assertion can be
 used: variable declarations, function argument annotations, return types,
-list element checks, and dependent argument guards.
+list element checks, and dependent argument guards. Errors from long unions
+summarize the allowed candidates instead of printing an unbounded list.
 }

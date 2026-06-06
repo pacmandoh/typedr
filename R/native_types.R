@@ -30,7 +30,9 @@
 #' @param length Required length of the checked object.
 #' @param nrow Required number of rows.
 #' @param ncol Required number of columns.
-#' @param each Assertion that every item or column must satisfy.
+#' @param each Assertion that every item or column must satisfy. When several
+#'   items fail, typedr reports the first location and the number of remaining
+#'   failures while preserving the first underlying error as the parent.
 #' @param dim Required dimensions.
 #' @param levels Required factor levels.
 #' @param data_frame_ok Whether data frames should be accepted by `List()`.
@@ -38,7 +40,6 @@
 #'   any further check.
 #' @param ... Additional conditions, see details.
 #'
-#' @export
 #' @return A typedr assertion function.
 #' @name assertion_factories
 #' @rdname assertion_factories
@@ -110,6 +111,7 @@
 #' symbol_list2(x, x + y)
 #' symbol_list2(x, y)
 #' }
+NULL
 
 .typedr_plural <- function(x) {
   paste0(x, "s")
@@ -119,7 +121,8 @@
   if (name == "") {
     sprintf("%s %s", kind, i)
   } else {
-    sprintf('%s %s ("%s")', kind, i, name)
+    name <- .typedr_truncate_text(name, max_chars = 32L)
+    sprintf("%s %s (%s)", kind, i, encodeString(name, quote = '"'))
   }
 }
 
@@ -127,11 +130,10 @@
   value,
   each,
   kind = "element",
-  class = "typedr_element_error",
-  max_failures = 5L
+  class = "typedr_element_error"
 ) {
   nms <- names2(value)
-  failures <- character()
+  first_failure <- NULL
   first_error <- NULL
   failure_count <- 0L
 
@@ -147,8 +149,8 @@
     if (inherits(err, "error")) {
       failure_count <- failure_count + 1L
       first_error <- first_error %||% err
-      if (length(failures) < max_failures) {
-        failures <- c(failures, .typedr_each_failure_label(i, nms[[i]], kind))
+      if (is_null(first_failure)) {
+        first_failure <- .typedr_each_failure_label(i, nms[[i]], kind)
       }
     }
   }
@@ -159,16 +161,10 @@
 
   if (failure_count == 1L) {
     .typedr_abort_assertion(
-      sprintf("%s failed assertion.", failures[[1]]),
+      sprintf("%s failed assertion.", first_failure),
       class = class,
       parent = first_error
     )
-  }
-
-  remaining <- failure_count - length(failures)
-  failure_list <- paste(failures, collapse = ", ")
-  if (remaining > 0L) {
-    failure_list <- paste0(failure_list, sprintf(", and %s more", remaining))
   }
 
   .typedr_abort_assertion(
@@ -179,13 +175,9 @@
         .typedr_plural(kind)
       ),
       "x" = sprintf(
-        "%s failed: %s.",
-        .capitalize(.typedr_plural(kind)),
-        failure_list
-      ),
-      "i" = sprintf(
-        "Showing at most %s failures; the parent error shows the first failure.",
-        max_failures
+        "First failure: %s; and %s more.",
+        first_failure,
+        failure_count - 1L
       )
     ),
     class = class,
@@ -193,20 +185,90 @@
   )
 }
 
+.typedr_check_typeof <- function(value, expected) {
+  if (typeof(value) == expected) {
+    return(invisible(NULL))
+  }
+
+  .typedr_abort_assertion(c(
+    "type mismatch",
+    "x" = .typedr_compare(
+      typeof(value),
+      expected,
+      x_arg = "typeof(value)",
+      y_arg = "expected"
+    )
+  ))
+}
+
+.typedr_check_length <- function(value, expected) {
+  if (is_null(expected) || length(value) == expected) {
+    return(invisible(NULL))
+  }
+
+  expected <- as.integer(expected)
+  .typedr_abort_assertion(c(
+    "length mismatch",
+    "x" = .typedr_compare(
+      length(value),
+      expected,
+      x_arg = "length(value)",
+      y_arg = "expected"
+    )
+  ))
+}
+
+.typedr_check_class <- function(value, expected) {
+  if (expected %in% class(value)) {
+    return(invisible(NULL))
+  }
+
+  .typedr_abort_assertion(c(
+    "type mismatch",
+    "x" = .typedr_compare(
+      class(value),
+      expected,
+      x_arg = "class(value)",
+      y_arg = "expected to contain"
+    )
+  ))
+}
+
+.typedr_check_shape <- function(value, expected_nrow, expected_ncol) {
+  if (!is_missing(expected_nrow) && nrow(value) != expected_nrow) {
+    expected_nrow <- as.integer(expected_nrow)
+    .typedr_abort_assertion(c(
+      "Row number mismatch",
+      "x" = .typedr_compare(
+        nrow(value),
+        expected_nrow,
+        x_arg = "nrow(value)",
+        y_arg = "expected"
+      )
+    ))
+  }
+
+  if (!is_missing(expected_ncol) && ncol(value) != expected_ncol) {
+    expected_ncol <- as.integer(expected_ncol)
+    .typedr_abort_assertion(c(
+      "Column number mismatch",
+      "x" = .typedr_compare(
+        ncol(value),
+        expected_ncol,
+        x_arg = "ncol(value)",
+        y_arg = "expected"
+      )
+    ))
+  }
+
+  invisible(NULL)
+}
+
+#' @export
+#' @rdname assertion_factories
 Any <- as_assertion_factory(
   function(value, length = NULL) {
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -218,29 +280,8 @@ Logical <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_logical(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "logical",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "logical")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -252,29 +293,8 @@ Integer <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_integer(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "integer",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "integer")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -286,29 +306,8 @@ Double <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_double(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "double",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "double")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -320,29 +319,8 @@ Character <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_character(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "character",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "character")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -354,29 +332,8 @@ Raw <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_raw(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "raw",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "raw")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -394,29 +351,8 @@ List <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_list(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "list",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "list")
+    .typedr_check_length(value, length)
 
     if (!is_missing(each)) {
       .typedr_check_each(value, each)
@@ -463,17 +399,7 @@ Closure <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (typeof(value) != "closure") {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "closure",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "closure")
     value
   }
 )
@@ -485,17 +411,7 @@ Special <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (typeof(value) != "special") {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "special",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "special")
     value
   }
 )
@@ -507,17 +423,7 @@ Builtin <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (typeof(value) != "builtin") {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "builtin",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "builtin")
     value
   }
 )
@@ -529,17 +435,7 @@ Environment <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_environment(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "environment",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "environment")
     value
   }
 )
@@ -551,17 +447,7 @@ Symbol <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is_symbol(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "symbol",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "symbol")
     value
   }
 )
@@ -582,32 +468,11 @@ Pairlist <- as_assertion_factory(
         .typedr_abort_assertion("`value` can't be NULL")
       }
     }
-    if (!is_pairlist(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "pairlist",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "pairlist")
     if (!is_missing(each)) {
       .typedr_check_each(value, each)
     }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -619,17 +484,7 @@ Language <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (typeof(value) != "language") {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "language",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "language")
     value
   }
 )
@@ -645,34 +500,11 @@ Expression <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (typeof(value) != "expression") {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          typeof(value),
-          "expression",
-          x_arg = "typeof(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_typeof(value, "expression")
+    .typedr_check_length(value, length)
     value
   }
 )
-
-# function, factor, matrix, array, data.frame, date, time
 
 #' @export
 #' @rdname assertion_factories
@@ -719,18 +551,7 @@ Factor <- as_assertion_factory(
         )
       ))
     }
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_length(value, length)
     if (!is_missing(levels) && !identical(levels(value), levels)) {
       .typedr_abort_assertion(c(
         "type mismatch",
@@ -753,41 +574,8 @@ Data.frame <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is.data.frame(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          class(value),
-          "data.frame",
-          x_arg = "class(value)",
-          y_arg = "expected to contain"
-        )
-      ))
-    }
-    if (!is_missing(nrow) && nrow(value) != nrow) {
-      nrow <- as.integer(nrow)
-      .typedr_abort_assertion(c(
-        "Row number mismatch",
-        "x" = .typedr_compare(
-          nrow(value),
-          nrow,
-          x_arg = "nrow(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_missing(ncol) && ncol(value) != ncol) {
-      ncol <- as.integer(ncol)
-      .typedr_abort_assertion(c(
-        "Column number mismatch",
-        "x" = .typedr_compare(
-          ncol(value),
-          ncol,
-          x_arg = "ncol(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_class(value, "data.frame")
+    .typedr_check_shape(value, nrow, ncol)
 
     if (!is_missing(each)) {
       .typedr_check_each(value, each, kind = "column", class = "typedr_column_error")
@@ -803,41 +591,8 @@ Matrix <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!is.matrix(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          class(value),
-          "matrix",
-          x_arg = "class(value)",
-          y_arg = "expected to contain"
-        )
-      ))
-    }
-    if (!is_missing(nrow) && nrow(value) != nrow) {
-      nrow <- as.integer(nrow)
-      .typedr_abort_assertion(c(
-        "Row number mismatch",
-        "x" = .typedr_compare(
-          nrow(value),
-          nrow,
-          x_arg = "nrow(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
-    if (!is_missing(ncol) && ncol(value) != ncol) {
-      ncol <- as.integer(ncol)
-      .typedr_abort_assertion(c(
-        "Column number mismatch",
-        "x" = .typedr_compare(
-          ncol(value),
-          ncol,
-          x_arg = "ncol(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_class(value, "matrix")
+    .typedr_check_shape(value, nrow, ncol)
     value
   }
 )
@@ -883,30 +638,8 @@ Date <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!"Date" %in% class(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          class(value),
-          "Date",
-          x_arg = "class(value)",
-          y_arg = "expected to contain"
-        )
-      ))
-    }
-
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_class(value, "Date")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -918,30 +651,8 @@ Time <- as_assertion_factory(
     if (allow_null && is_null(value)) {
       return(NULL)
     }
-    if (!"POSIXct" %in% class(value)) {
-      .typedr_abort_assertion(c(
-        "type mismatch",
-        "x" = .typedr_compare(
-          class(value),
-          "POSIXct",
-          x_arg = "class(value)",
-          y_arg = "expected to contain"
-        )
-      ))
-    }
-
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_class(value, "POSIXct")
+    .typedr_check_length(value, length)
     value
   }
 )
@@ -950,18 +661,7 @@ Time <- as_assertion_factory(
 #' @rdname assertion_factories
 Dots <- as_assertion_factory(
   function(value, length = NULL, each) {
-    if (!is_null(length) && length(value) != length) {
-      length <- as.integer(length)
-      .typedr_abort_assertion(c(
-        "length mismatch",
-        "x" = .typedr_compare(
-          length(value),
-          length,
-          x_arg = "length(value)",
-          y_arg = "expected"
-        )
-      ))
-    }
+    .typedr_check_length(value, length)
 
     if (!is_missing(each)) {
       .typedr_check_each(value, each)

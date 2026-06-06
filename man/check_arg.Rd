@@ -57,5 +57,8 @@ a value, usually a return value, satisfies an assertion.
 typedr reports failures with cli messages and structured rlang-compatible
 condition classes such as \code{typedr_type_error}, \code{typedr_assign_error}, and
 \code{typedr_return_error}. These classes make errors easier to test, catch, and
-diagnose than plain message-only failures.
+diagnose than plain message-only failures. Long guard and assertion
+expressions are shortened in diagnostic bullets while the original
+expressions remain available in the generated function and condition data.
+Exceptionally long parent calls are displayed as \code{Type()}.
 }

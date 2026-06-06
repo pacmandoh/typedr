@@ -59,6 +59,21 @@ test_that("as_assertion_factory uses custom predicate messages", {
   expect_match(conditionMessage(err), "value > 0", fixed = TRUE)
 })
 
+test_that("custom predicate diagnostics truncate long expressions and values", {
+  LongPredicate <- as_assertion_factory(function(value) {
+    value %in% paste0("allowed-value-", seq_len(100))
+  })
+
+  err <- rlang::catch_cnd(
+    LongPredicate()(paste(rep("x", 100), collapse = "")),
+    "error"
+  )
+  lines <- strsplit(conditionMessage(err), "\n", fixed = TRUE)[[1]]
+
+  expect_true(all(nchar(lines, type = "width") < 140L))
+  expect_match(conditionMessage(err), "...", fixed = TRUE)
+})
+
 test_that("as_assertion_factory supports explicit predicate mode", {
   IsTrue <- as_assertion_factory(
     function(value) value,

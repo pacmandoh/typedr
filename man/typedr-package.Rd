@@ -6,16 +6,29 @@
 \alias{typedr-package}
 \title{typedr: Support Types for Variables, Arguments, and Return Values}
 \description{
-\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+typedr is a modernized refactor of the
+\href{https://github.com/moodymudskipper/typed}{typed} package for R. It supports
+runtime type constraints for variables, function arguments, and function
+return values.
 
-typedr is a modernized refactor of the \href{https://github.com/moodymudskipper/typed}{typed} package for R. It supports runtime type constraints for variables, function arguments, and function return values.
-
-typedr keeps typed's core syntax and model: \verb{?} declarations, assertion factories, typed functions, and active bindings for assignment checks. The implementation has been refreshed around rlang and cli so expression handling, condition metadata, error messages, and print output are more structured and easier to inspect.
+typedr keeps typed's core syntax and model: \verb{?} declarations, assertion
+factories, typed functions, and active bindings for assignment checks. The
+implementation has been refreshed around rlang and cli so expression
+handling, condition metadata, error messages, and print output are more
+structured and easier to inspect. Diagnostics use public assertion names,
+summarize repeated failures, and shorten long labels or values so generated
+implementation details do not dominate the message.
 }
 \section{Relationship with typed}{
 
-typedr is derived from and deeply grateful to \href{https://github.com/moodymudskipper/typed}{moodymudskipper/typed}. The original package established the interface and idea that typedr carries forward. typedr's purpose is to continue that work with modern rlang/cli internals, structured typedr error classes, and richer printing for typed objects.
+typedr is derived from and deeply grateful to
+\href{https://github.com/moodymudskipper/typed}{moodymudskipper/typed}. The
+original package established the interface and idea that typedr carries
+forward. typedr's purpose is to continue that work with modern rlang/cli
+internals, structured typedr error classes, and richer printing for typed
+objects.
 }
+
 \seealso{
 Useful links:
 \itemize{
