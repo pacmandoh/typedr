@@ -36,6 +36,7 @@ Collate:
     'import-standalone-types-check.R'
     'new_type.R'
     'native_types.R'
+    'print-controls.R'
     'print.R'
     'question_mark.R'
     'typedr-package.R'
