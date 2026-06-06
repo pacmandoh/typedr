@@ -443,7 +443,7 @@
         "Invalid use of `{.field ?}` in a value position.",
         i = "Use `? name <- value` to declare a typed variable,
           or put `{.field ?}` before or in `function(...)`.",
-        x = "Got `rhs`: `{as_label(rhs)}` (only a symbol like `? mean` is allowed here)."
+        x = "Got `rhs`: `{(.typedr_diagnostic_label(rhs))}` (only a symbol like `? mean` is allowed here)."
       ),
       class = c(
         "typedr_value_context_error",
@@ -453,18 +453,6 @@
       call = qmark_error_call
     )
   } else {
-    # if (is_call(rhs, c("+", "~"))) {
-    #   cli_abort(
-    #     c(
-    #       "Please use `{.field ?+}` or `{.field ?~}` inside function arguments definitions.",
-    #       i = "`function(x = ?+ Type(), ...) {{ ... }}`",
-    #       i = "`function(x = ?~ Type(), ...) {{ ... }}`"
-    #     ),
-    #     class = c("typedr_qmark_bind_context_error", "typedr_qmark_error", "typedr_error"),
-    #     call = qmark_error_call
-    #   )
-    # }
-
     # * 1) assertion ? (name) <- value  /  assertion ? name <- value
     if (.is_assign_stmt(rhs)) {
       # R/utils.R

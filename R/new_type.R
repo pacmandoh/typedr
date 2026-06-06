@@ -1,3 +1,88 @@
+.typedr_truncate_text <- function(x, max_chars = 80L) {
+  x <- paste(x, collapse = " ")
+  x <- gsub("[[:space:]]+", " ", x)
+  if (nchar(x, type = "width") <= max_chars) {
+    return(x)
+  }
+
+  paste0(strtrim(x, width = max_chars - 3L), "...")
+}
+
+.typedr_deparse <- function(x, max_chars = 80L) {
+  .typedr_truncate_text(
+    deparse(x, width.cutoff = 60L),
+    max_chars = max_chars
+  )
+}
+
+.typedr_diagnostic_label <- function(x, max_chars = 56L) {
+  .typedr_truncate_text(expr_deparse(x), max_chars = max_chars)
+}
+
+.typedr_assertion_diagnostic_label <- function(x, max_chars = 48L) {
+  operator <- if (is_call(x, "|")) {
+    "|"
+  } else if (is_call(x, "&")) {
+    "&"
+  } else {
+    return(.typedr_diagnostic_label(x, max_chars = max_chars))
+  }
+
+  flatten <- function(node) {
+    if (is_call(node, operator)) {
+      return(c(flatten(node[[2]]), flatten(node[[3]])))
+    }
+    expr_deparse(node)
+  }
+
+  .typedr_summarize_labels(
+    flatten(x),
+    separator = paste0(" ", operator, " "),
+    max_items = 2L,
+    max_chars = max_chars
+  )
+}
+
+.typedr_error_call <- function(x, max_chars = 56L) {
+  if (is_null(x) || !is_call(x)) {
+    return(x)
+  }
+  if (nchar(expr_deparse(x), type = "width") <= max_chars) {
+    return(x)
+  }
+  call2("Type")
+}
+
+.typedr_summarize_labels <- function(
+  labels,
+  separator = " | ",
+  max_items = 3L,
+  max_chars = 80L
+) {
+  labels <- vapply(
+    labels,
+    .typedr_truncate_text,
+    character(1),
+    max_chars = max_chars
+  )
+  shown <- character()
+
+  for (label in labels) {
+    candidate <- paste(c(shown, label), collapse = separator)
+    if (length(shown) >= max_items || nchar(candidate, type = "width") > max_chars) {
+      break
+    }
+    shown <- c(shown, label)
+  }
+
+  remaining <- length(labels) - length(shown)
+  summary <- paste(shown, collapse = separator)
+  if (remaining > 0L) {
+    summary <- paste0(summary, separator, "... (", remaining, " more)")
+  }
+  summary
+}
+
 #' Build an assertion factory
 #'
 #' `as_assertion_factory()` wraps a checking function and turns it into a typedr
@@ -6,7 +91,10 @@
 #' throw an error if the value is invalid. Errors that are not already typedr
 #' errors are wrapped in a standard typedr custom assertion error. When a
 #' non-typedr error already has a useful message, that message becomes the
-#' typedr error message instead of being repeated as a parent error.
+#' typedr error message instead of being repeated as a parent error. Generated
+#' wrapper names are replaced with the public assertion-factory call in typedr
+#' errors, and long predicate expressions or values are shortened in diagnostic
+#' bullets. Exceptionally long assertion calls use the neutral `Type()` label.
 #'
 #' @param f A function whose first argument is the value to check. Additional
 #'   arguments become arguments of the assertion factory.
@@ -52,7 +140,9 @@ as_assertion_factory <- function(
   res <- new_function(
     pairlist2(!!!fn_fmls(f)[-1], ... = ),
     expr({
-      .typedr_assertion_call <- .typedr_factory_call(sys.function())
+      .typedr_assertion_call <- .typedr_error_call(
+        .typedr_factory_call(sys.function())
+      )
       .typedr_factory_mode <- !!mode
       .typedr_factory_message <- !!message_expr
       .typedr_factory_predicate <- !!predicate_expr
@@ -134,7 +224,7 @@ as_assertion_factory <- function(
     body
   }
 
-  paste(deparse(expr, width.cutoff = 60), collapse = " ")
+  .typedr_deparse(expr)
 }
 
 .typedr_run_assertion_check <- function(
@@ -152,7 +242,7 @@ as_assertion_factory <- function(
   if (inherits(result, "error")) {
     if (inherits(result, "typedr_error")) {
       if (is_call(call)) {
-        result$call <- call
+        result$call <- .typedr_error_call(call)
         attr(result$call, "srcref") <- NULL
       }
       rlang::cnd_signal(result)
@@ -177,7 +267,7 @@ as_assertion_factory <- function(
         "typedr_assertion_error",
         "typedr_error"
       ),
-      call = call
+      call = .typedr_error_call(call)
     )
   }
   message <- message %||% "Custom assertion failed."
@@ -191,7 +281,11 @@ as_assertion_factory <- function(
       return(value)
     }
     predicate_line <- if (!is_null(predicate)) {
-      sprintf("`%s` evaluated to %s.", predicate, .typedr_deparse(result))
+      sprintf(
+        "`%s` evaluated to %s.",
+        .typedr_truncate_text(predicate),
+        .typedr_deparse(result)
+      )
     } else {
       sprintf("custom predicate evaluated to %s.", .typedr_deparse(result))
     }
@@ -206,7 +300,7 @@ as_assertion_factory <- function(
         "typedr_assertion_error",
         "typedr_error"
       ),
-      call = call
+      call = .typedr_error_call(call)
     )
   }
 
@@ -226,7 +320,7 @@ as_assertion_factory <- function(
         "typedr_assertion_error",
         "typedr_error"
       ),
-      call = call
+      call = .typedr_error_call(call)
     )
   }
 
@@ -390,7 +484,6 @@ infer_implicit_assignment_call <- function(value) {
       "matrix" = expr(Matrix()),
       "array" = expr(Array()),
       "date" = expr(Date()),
-      "matrix" = expr(Matrix()),
       call2("Any", class = cl)
     )
     return(assertion_call)

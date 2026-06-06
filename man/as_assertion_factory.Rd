@@ -32,5 +32,8 @@ first argument and return the checked value, return a predicate result, or
 throw an error if the value is invalid. Errors that are not already typedr
 errors are wrapped in a standard typedr custom assertion error. When a
 non-typedr error already has a useful message, that message becomes the
-typedr error message instead of being repeated as a parent error.
+typedr error message instead of being repeated as a parent error. Generated
+wrapper names are replaced with the public assertion-factory call in typedr
+errors, and long predicate expressions or values are shortened in diagnostic
+bullets. Exceptionally long assertion calls use the neutral \code{Type()} label.
 }

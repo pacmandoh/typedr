@@ -17,7 +17,7 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
   }
 
   asset_nm <- if (is_call(.assertion_expr)) {
-    expr_deparse(.assertion_expr)
+    .typedr_assertion_diagnostic_label(.assertion_expr)
   } else if (is_character(.assertion_expr)) {
     .assertion_expr
   } else {
@@ -28,7 +28,7 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
 
   val <- try_fetch(.assertion(.output, ...), error = identity)
   if (inherits(val, "error")) {
-    val$call <- .assertion_expr
+    val$call <- .typedr_error_call(.assertion_expr)
     cli_abort(
       c(
         "Return value does not satisfy the required {.cls Type()}.",
@@ -57,7 +57,10 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
 #' typedr reports failures with cli messages and structured rlang-compatible
 #' condition classes such as `typedr_type_error`, `typedr_assign_error`, and
 #' `typedr_return_error`. These classes make errors easier to test, catch, and
-#' diagnose than plain message-only failures.
+#' diagnose than plain message-only failures. Long guard and assertion
+#' expressions are shortened in diagnostic bullets while the original
+#' expressions remain available in the generated function and condition data.
+#' Exceptionally long parent calls are displayed as `Type()`.
 #'
 #' @param .arg Function argument to check.
 #' @param .assertion Assertion to apply.
@@ -104,14 +107,13 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
             val <- !!.arg
             function(assigned_value) {
               if (!is_missing(assigned_value)) {
-                # fix
                 tmp <- try_fetch(
                   !!call2(assertion_expr, expr(assigned_value), !!!dots_exprs),
                   error = identity
                 )
                 arg_nm <- !!var_nm
                 if (inherits(tmp, "error")) {
-                  tmp$call <- !!.assertion_expr
+                  tmp$call <- .typedr_error_call(!!.assertion_expr)
                   cli_abort(
                     "Assigned value to `{.field {arg_nm}}` doesn't satisfy the assertion.",
                     class = c(
@@ -143,7 +145,7 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
 
   val <- try_fetch(.assertion(.arg, ...), error = identity)
   if (inherits(val, "error")) {
-    val$call <- .assertion_expr
+    val$call <- .typedr_error_call(.assertion_expr)
     fun_nm <- call_name(caller_call())
     cli_abort(
       "Invalid {.cls Type()} of `{.field {var_nm}}` to `{.field {fun_nm}()}`.",
@@ -194,8 +196,8 @@ check_dependent_arg <- function(
     return(invisible(NULL))
   }
 
-  guard_label <- expr_deparse(guard_expr)
-  assertion_label <- expr_deparse(assertion_expr)
+  guard_label <- .typedr_diagnostic_label(guard_expr)
+  assertion_label <- .typedr_assertion_diagnostic_label(assertion_expr)
   message <- c(
     "Invalid dependent {.cls Type()} of `{.field {var_nm}}`.",
     "i" = "Guard `{.field {guard_label}}` matched, so `{.field {var_nm}}` must satisfy {.cls {assertion_label}}."
@@ -237,7 +239,7 @@ check_dependent_arg <- function(
     return(invisible(NULL))
   }
 
-  val$call <- assertion_expr
+  val$call <- .typedr_error_call(assertion_expr)
 
   if (.severity == "warning") {
     .cli_warn_bullets(
@@ -266,7 +268,7 @@ check_dependent_arg <- function(
 }
 
 typedr_inactive_arg_cnd <- function(var_nm, guard_expr, severity, call) {
-  guard_label <- expr_deparse(guard_expr)
+  guard_label <- .typedr_diagnostic_label(guard_expr)
   message <- c(
     "!" = "Argument `{.field {var_nm}}` is inactive.",
     "i" = "Guard `{.field {guard_label}}` did not match, so `{.field {var_nm}}` will not take effect."
@@ -468,7 +470,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
   if (!is_missing(value)) {
     val <- try_fetch(assertion(value), error = identity)
     if (inherits(val, "error")) {
-      val$call <- assertion_expr
+      val$call <- .typedr_error_call(assertion_expr)
       cli_abort(
         "Invalid initial value for `{.field {x}}`.",
         class = c(
@@ -524,7 +526,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
               rt_assertion <- attr(val, "typedr_assertion", exact = TRUE) %||%
                 .typedr_assertion_expr
               if (inherits(tmp, "error")) {
-                tmp$call <- rt_assertion
+                tmp$call <- .typedr_error_call(rt_assertion)
                 cli_abort(
                   "Assigned value to `{.field {x}}` doesn't satisfy the assertion.",
                   class = c(

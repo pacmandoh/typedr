@@ -75,7 +75,7 @@ Character() ? x # restrict x to "character" type
 x <- "a"
 x
 #> value: <character> [1] "a"
-#> • assertion: <none>
+#> • assertion: <Character()>
 #> • const: FALSE
 
 Integer(3) ? y <- 1:3 # restrict y to "integer" type of length 3
@@ -91,7 +91,7 @@ We cannot assign values of the wrong type to `x` and `y` anymore.
 x <- 2
 #> Error:
 #> ! Assigned value to `x` doesn't satisfy the assertion.
-#> Caused by error:
+#> Caused by error in `Character()`:
 #> ! type mismatch
 #> ✖ `typeof(value)`: "double", `expected`: "character"
 
@@ -119,7 +119,7 @@ declare("x", Character())
 x <- "a"
 x
 #> value: <character> [1] "a"
-#> • assertion: <none>
+#> • assertion: <Character()>
 #> • const: FALSE
 
 declare("y", Integer(3), 1:3)
@@ -134,25 +134,24 @@ y
 `Integer` and `Character` are function factories (functions that return
 functions), thus `Integer(3)` and `Character()` are functions.
 
-The latter functions operate checks on a value and in case of success
-return this value, generally unmodified. For instance :
+The latter functions check a value and, on success, return it generally
+unmodified. For instance:
 
 ``` r
 Integer(3)(1:2)
-#> Error in `f()`:
+#> Error in `Integer()`:
 #> ! length mismatch
 #> ✖ `length(value)`: 2L, `expected`: 3L
 
 Character()(3)
-#> Error in `f()`:
+#> Error in `Character()`:
 #> ! type mismatch
 #> ✖ `typeof(value)`: "double", `expected`: "character"
 ```
 
 We call `Integer(3)` and `Character()` assertions, and we call `Integer`
-and `Character` assertion factories (or just types, with then we must be
-careful not to confuse them with atomic types returned by the `typeof`
-function).
+and `Character` assertion factories. They are also called types, but
+should not be confused with the atomic types returned by `typeof()`.
 
 The package contains many assertion factories (see
 `?assertion_factories`), the main ones are:
@@ -201,12 +200,12 @@ signatures.
 
 ### Advanced type restriction using arguments
 
-As we’ve seen with `Integer(3)`, passing arguments to a assertion
+As we’ve seen with `Integer(3)`, passing arguments to an assertion
 factory restricts the type.
 
 For instance `Integer` has arguments `length` `allow_null` and `...`. We
-already used `length`, `allow_null` is convenient to allow a default `NULL`
-value in addition to the `"integer"` type.
+already used `length`, `allow_null` is convenient to allow a default
+`NULL` value in addition to the `"integer"` type.
 
 The arguments can differ between assertion factories, for instance
 `Data.frame` has `nrow`, `ncol`, `each`, `allow_null` and `...`
@@ -224,7 +223,7 @@ Data.frame(each = Double()) ? x <- iris
 #> ! Invalid initial value for `x`.
 #> Caused by error in `Data.frame()`:
 #> ! column 5 ("Species") failed assertion.
-#> Caused by error in `f()`:
+#> Caused by error in `Double()`:
 #> ! type mismatch
 #> ✖ `typeof(value)`: "integer", `expected`: "double"
 ```
@@ -246,22 +245,47 @@ Integer(anyNA = FALSE) ? x <- c(1L, 2L, NA)
 Useful arguments might be for instance, `anyDuplicated = 0L`,
 `names = NULL`, `attributes = NULL`… Any available function can be used.
 
-That makes assertion factories very flexible! If it is still not
-flexible enough, we can provide arguments arguments named `...` to
-functional factories to add a custom restriction, this is usually better
-done by defining a wrapper.
+That makes assertion factories very flexible. If that is still not
+flexible enough, arguments named `...` can add custom restrictions. For
+repeated use, this is usually better expressed as a wrapper.
 
 ``` r
 Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")) ? 
   x <- "potatoe"
-#> Error in `declare()`:
-#> ! Invalid initial value for `x`.
-#> Caused by error in `Character()`:
-#> ! `value` is not a fruit!
-#> ✖ `value %in% c("apple", "pear", "cherry")`: FALSE, `expected`: TRUE
+#> Error in if (nchar(expr_deparse(x), type = "width") <= max_chars) {: the condition has length > 1
 ```
 
 This is often better done by defining a wrapper as shown below.
+
+### Concise diagnostics
+
+typedr keeps generated errors focused on the user-facing assertion.
+Internal wrapper names such as `f()` are replaced by calls such as
+`Double()` or a custom factory name. Repeated container failures show
+only the first failed item or column and the number of remaining
+failures. Long names, expressions, values, and union candidate lists are
+shortened in diagnostic bullets. Exceptionally long parent calls use the
+neutral `Type()` label.
+
+``` r
+many_columns <- as.data.frame(setNames(
+  rep(list(1L), 4),
+  c("first", "a very long second column name", "third", "fourth")
+))
+Data.frame(each = Double()) ? compact_example <- many_columns
+#> Error in `declare()`:
+#> ! Invalid initial value for `compact_example`.
+#> Caused by error in `Data.frame()`:
+#> ! 4 columns failed assertion.
+#> ✖ First failure: column 1 ("first"); and 3 more.
+#> Caused by error in `Double()`:
+#> ! type mismatch
+#> ✖ `typeof(value)`: "integer", `expected`: "double"
+```
+
+The first underlying assertion error remains attached as the parent
+condition, so `rlang::last_trace()` still contains the useful root cause
+without expanding every repeated failure.
 
 ### Constants
 
@@ -302,10 +326,6 @@ body
 ``` r
 add
 #> <typedr function>
-#> prettycode is not installed, using basic typedr syntax highlighting.
-#> Install it with `install.packages('prettycode')` for fuller R syntax
-#> highlighting.
-#> This message is displayed once per session.
 #> function (x, y = 1) 
 #> {
 #>   check_arg(x, Double())
@@ -316,6 +336,10 @@ add
 #> Arguments:
 #> • `x`: <Double()>
 #> • `y`: <Double()> (default: 1)
+#> ! {prettycode} is not installed, using basic {typedr} syntax highlighting.
+#> ℹ Install it with `install.packages('prettycode')` for fuller R syntax
+#>   highlighting.
+#> This message is displayed once per session.
 ```
 
 Let’s test it by providing a right and wrong type.
@@ -443,8 +467,8 @@ optional_scale <- ? function(
 optional_scale()
 #> [1] TRUE
 optional_scale(x = NULL, scale = 2)
-#> Warning: Argument `scale` is inactive.
-#> ℹ Guard `!x:Missing()` did not match, so `scale` will not take effect.
+#> Warning in optional_scale(x = NULL, scale = 2): ! Argument `scale` is inactive.
+#>   ℹ Guard `!x:Missing()` did not match, so `scale` will not take effect.
 #> [1] TRUE
 optional_scale(x = 1L, scale = 2)
 #> [1] TRUE

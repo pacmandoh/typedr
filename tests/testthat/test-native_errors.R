@@ -150,9 +150,8 @@ test_that("container each failures are summarized when many items fail", {
 
   expect_match(conditionMessage(data_frame_err), "6 columns failed assertion.", fixed = TRUE)
   expect_match(conditionMessage(data_frame_err), 'column 1 ("a")', fixed = TRUE)
-  expect_match(conditionMessage(data_frame_err), 'column 5 ("e")', fixed = TRUE)
-  expect_match(conditionMessage(data_frame_err), "and 1 more", fixed = TRUE)
-  expect_no_match(conditionMessage(data_frame_err), 'column 6 ("f")', fixed = TRUE)
+  expect_match(conditionMessage(data_frame_err), "and 5 more", fixed = TRUE)
+  expect_no_match(conditionMessage(data_frame_err), 'column 2 ("b")', fixed = TRUE)
   expect_identical(data_frame_err$parent$call, quote(Double()))
 
   list_err <- expect_typedr_error(
@@ -160,8 +159,9 @@ test_that("container each failures are summarized when many items fail", {
     "typedr_element_error"
   )
   expect_match(conditionMessage(list_err), "6 elements failed assertion.", fixed = TRUE)
-  expect_match(conditionMessage(list_err), 'element 5 ("e")', fixed = TRUE)
-  expect_match(conditionMessage(list_err), "and 1 more", fixed = TRUE)
+  expect_match(conditionMessage(list_err), 'element 1 ("a")', fixed = TRUE)
+  expect_match(conditionMessage(list_err), "and 5 more", fixed = TRUE)
+  expect_no_match(conditionMessage(list_err), 'element 2 ("b")', fixed = TRUE)
   expect_no_match(conditionMessage(list_err), "`f()`", fixed = TRUE)
 
   pairlist_err <- expect_typedr_error(
@@ -175,6 +175,23 @@ test_that("container each failures are summarized when many items fail", {
     "typedr_element_error"
   )
   expect_match(conditionMessage(dots_err), "6 elements failed assertion.", fixed = TRUE)
+})
+
+test_that("container failure labels truncate long names", {
+  long_name <- paste(rep("\u5217\u540d", 50), collapse = "")
+  value <- as.data.frame(setNames(list(1L, 2L), c(long_name, "second")))
+  err <- expect_typedr_error(
+    Data.frame(each = Double())(value),
+    "typedr_column_error"
+  )
+  message <- conditionMessage(err)
+
+  expect_match(message, "First failure: column 1", fixed = TRUE)
+  expect_match(message, "...", fixed = TRUE)
+  expect_match(message, "and 1 more", fixed = TRUE)
+  expect_no_match(message, long_name, fixed = TRUE)
+  expect_no_match(message, "second", fixed = TRUE)
+  expect_true(all(nchar(strsplit(message, "\n", fixed = TRUE)[[1]], type = "width") < 120L))
 })
 
 test_that("assertion factory call inference falls back cleanly", {

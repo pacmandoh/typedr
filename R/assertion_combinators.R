@@ -8,7 +8,8 @@
 #'
 #' Combined assertions can be used anywhere a regular typedr assertion can be
 #' used: variable declarations, function argument annotations, return types,
-#' list element checks, and dependent argument guards.
+#' list element checks, and dependent argument guards. Errors from long unions
+#' summarize the allowed candidates instead of printing an unbounded list.
 #'
 #' @param e1,e2 typedr assertions.
 #' @param ... typedr assertions.
@@ -88,10 +89,15 @@ typedr_union_assertion <- function(assertions, labels) {
       }
     }
 
+    candidates <- unlist(
+      strsplit(labels, " | ", fixed = TRUE),
+      use.names = FALSE
+    )
+    label_summary <- .typedr_summarize_labels(candidates)
     cli_abort(
       c(
         "Value does not satisfy any allowed {.cls Type()}.",
-        "x" = "Expected one of: {paste(labels, collapse = ' | ')}."
+        "x" = "Expected one of: {label_summary}."
       ),
       class = c(
         "typedr_union_error",
@@ -109,10 +115,17 @@ typedr_intersection_assertion <- function(assertions, labels) {
     for (i in seq_along(assertions)) {
       res <- try_fetch(assertions[[i]](res), error = identity)
       if (inherits(res, "error")) {
+        constraints <- strsplit(labels[[i]], " & ", fixed = TRUE)[[1]]
+        failed_label <- .typedr_summarize_labels(
+          constraints,
+          separator = " & ",
+          max_items = 2L,
+          max_chars = 56L
+        )
         cli_abort(
           c(
             "Value does not satisfy all required {.cls Type()} constraints.",
-            "x" = "Failed constraint: {labels[[i]]}."
+            "x" = "Failed constraint: {failed_label}."
           ),
           class = c(
             "typedr_intersection_error",

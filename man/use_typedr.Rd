@@ -13,7 +13,8 @@ use_typedr()
 This sets up your package so it can use typedr. It adds typedr to
 \code{DESCRIPTION}, ensures the package documentation file exists, and imports
 typedr's exported helpers.
-
+}
+\details{
 typedr is a modernized rlang/cli refactor of the original
 \href{https://github.com/moodymudskipper/typed}{typed} package, so this helper is
 intended for packages that want typed-style runtime checks with typedr's

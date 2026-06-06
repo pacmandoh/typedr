@@ -16,6 +16,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
+pkgload::load_all(".", quiet = TRUE)
 ```
 
 # typedr <img src='man/figures/logo.png' align="right" height="139" />
@@ -121,8 +122,8 @@ y
 `Integer` and `Character` are function factories (functions that return functions),
 thus `Integer(3)` and `Character()` are functions.
 
-The latter functions operate checks on a value and in case of success 
-return this value, generally unmodified. For instance :
+The latter functions check a value and, on success, return it generally
+unmodified. For instance:
 
 ```{r}
 Integer(3)(1:2)
@@ -131,8 +132,8 @@ Character()(3)
 ```
 
 We call `Integer(3)` and `Character()` assertions, and we call
-`Integer` and `Character` assertion factories (or just types, with then we must
-be careful not to confuse them with atomic types returned by the `typeof` function).
+`Integer` and `Character` assertion factories. They are also called types, but
+should not be confused with the atomic types returned by `typeof()`.
 
 The package contains many assertion factories (see `?assertion_factories`), 
 the main ones are: 
@@ -171,7 +172,7 @@ notation is usually clearer in function signatures.
 
 ### Advanced type restriction using arguments
 
-As we've seen with `Integer(3)`, passing arguments to a
+As we've seen with `Integer(3)`, passing arguments to an
 assertion factory restricts the type.
 
 For instance `Integer` has arguments `length` `allow_null` and
@@ -199,9 +200,9 @@ Integer(anyNA = FALSE) ? x <- c(1L, 2L, NA)
 Useful arguments might be for instance, `anyDuplicated = 0L`, `names = NULL`, 
 `attributes = NULL`... Any available function can be used.
 
-That makes assertion factories very flexible! If it is still not flexible enough,
-we can provide arguments arguments named `...` to functional factories to add
-a custom restriction, this is usually better done by defining a wrapper.
+That makes assertion factories very flexible. If that is still not flexible
+enough, arguments named `...` can add custom restrictions. For repeated use,
+this is usually better expressed as a wrapper.
 
 ```{r}
 Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")) ? 
@@ -209,6 +210,27 @@ Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry
 ```
 
 This is often better done by defining a wrapper as shown below.
+
+### Concise diagnostics
+
+typedr keeps generated errors focused on the user-facing assertion. Internal
+wrapper names such as `f()` are replaced by calls such as `Double()` or a custom
+factory name. Repeated container failures show only the first failed item or
+column and the number of remaining failures. Long names, expressions, values,
+and union candidate lists are shortened in diagnostic bullets. Exceptionally
+long parent calls use the neutral `Type()` label.
+
+```{r}
+many_columns <- as.data.frame(setNames(
+  rep(list(1L), 4),
+  c("first", "a very long second column name", "third", "fourth")
+))
+Data.frame(each = Double()) ? compact_example <- many_columns
+```
+
+The first underlying assertion error remains attached as the parent condition,
+so `rlang::last_trace()` still contains the useful root cause without expanding
+every repeated failure.
 
 ### Constants
 
