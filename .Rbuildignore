@@ -16,4 +16,6 @@
 ^Meta$
 ^[.]?air[.]toml$
 ^\.vscode$
+^\.cursor$
+^\._\.cursor$
 ^LICENSE\.md$
