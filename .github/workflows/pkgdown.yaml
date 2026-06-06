@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   workflow_call:
 
-name: pkgdown
+name: Pkgdown
 
 permissions: read-all
 
@@ -15,6 +15,7 @@ env:
 
 jobs:
   pkgdown:
+    name: Pkgdown
     runs-on: ubuntu-latest
     # Only restrict concurrency for non-PR jobs
     concurrency:
