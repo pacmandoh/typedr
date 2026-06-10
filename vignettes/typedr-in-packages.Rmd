@@ -36,18 +36,9 @@ plus the remaining count, and long diagnostic labels or values are shortened.
 Exceptionally long parent calls use the neutral `Type()` label. The first
 underlying error remains available as the parent condition.
 
-## Performance notes
-
-Native assertion factories use a lightweight fast path on success when the
-factory call is simple (no extra `...` dots, `each`, or `levels`). Typed
-functions created with `? function(...)` also cache assertion factories at
-definition time, so `Integer()` and similar calls are not rebuilt on every
-invocation.
-
-Expect a one-time cost of about 1--2 ms when a typed function is defined, then
-roughly tens of microseconds per call for native types. Custom assertions,
-combinators, dependent arguments, and factories with extra named `...` dots stay
-on the full slow path.
+Simple native assertion factories use a lightweight success-path check, and
+`? function(...)` caches those assertions at definition time instead of rebuilding
+them on every call.
 
 ## Use {typedr} in your package
 
