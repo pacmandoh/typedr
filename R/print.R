@@ -139,6 +139,7 @@ print.typedr <- function(x, ...) {
   .typedr_print_fn_meta(
     truncated = attr(fn_out, "typedr_fn_truncated", exact = TRUE),
     args_truncated = args_truncated,
+    has_args = length(arg_types) > 0L,
     color = attr(fn_out, "typedr_fn_color", exact = TRUE)
   )
 

@@ -429,6 +429,20 @@ test_that("pretty_fn supports folding, alternate outputs, and fn meta footer", {
   expect_match(first, "prettycode", fixed = TRUE)
   expect_no_match(second, "prettycode")
   expect_match(second, "print_whole_fn()", fixed = TRUE)
+
+  verbatim <- character()
+  .typedr_state$warned_once$prettycode_missing <- NULL
+  with_mocked_bindings(
+    .typedr_print_fn_meta(has_args = TRUE, color = TRUE),
+    cli_verbatim = function(text, ...) {
+      verbatim <<- c(verbatim, text)
+    },
+    cli_text = function(...) NULL,
+    .warn_once = function(...) invisible(NULL),
+    is_installed = function(pkg) FALSE,
+    .package = "typedr"
+  )
+  expect_true("" %in% verbatim)
 })
 
 test_that("internal highlighting helpers cover edge paths", {
@@ -439,19 +453,22 @@ test_that("internal highlighting helpers cover edge paths", {
   )
   expect_identical(
     .highlight_typedr_basic(
-      c("# comment", "(", "NULL", "mean(1)"),
+      c("# comment", "(", "NULL", "check_arg(x, Double())"),
       style = list(
         comment = function(x) paste0("comment:", x),
         null = function(x) paste0("null:", x),
         call = function(x) paste0("call:", x),
-        bracket = list(function(x) paste0("bracket:", x))
+        bracket = list(
+          function(x) paste0("b1:", x),
+          function(x) paste0("b2:", x)
+        )
       )
     ),
     c(
       "comment:# comment",
-      "bracket:(",
+      "b1:(",
       "null:NULL",
-      "call:meanbracket:(1bracket:)"
+      "call:check_argb1:(x, call:Doubleb2:(b2:)b1:)"
     )
   )
   expect_identical(.color_symbol_formals(character(), style = vsc_dark_plus()), character())
