@@ -171,7 +171,9 @@ type_printer <- function(type, printer) {
   call = caller_env(),
   value_missing = FALSE
 ) {
-  if (!value_missing || !.typedr_is_interactive() || !identical(call, globalenv())) {
+  if (
+    !value_missing || !.typedr_is_interactive() || !identical(call, globalenv())
+  ) {
     return(invisible(NULL))
   }
   assertion_label <- .typedr_assertion_diagnostic_label(assertion_quoted)
