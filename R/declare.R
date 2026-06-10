@@ -12,12 +12,12 @@
 #' @importFrom rlang call_name expr_deparse enexpr try_fetch caller_env %||%
 #' @importFrom cli cli_abort
 check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
+  if (is_null(.assertion_expr)) {
+    .assertion_expr <- enexpr(.assertion)
+  }
+
   val <- try_fetch(.assertion(.output, ...), error = identity)
   if (inherits(val, "error")) {
-    if (is_null(.assertion_expr)) {
-      .assertion_expr <- enexpr(.assertion)
-    }
-
     asset_nm <- if (is_call(.assertion_expr)) {
       .typedr_assertion_diagnostic_label(.assertion_expr)
     } else if (is_character(.assertion_expr)) {
