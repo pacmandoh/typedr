@@ -38,6 +38,22 @@ test_that("check_output formats the actual return type only on failure", {
   expect_match(conditionMessage(err), "type mismatch", fixed = TRUE)
 })
 
+test_that("typed return errors name the return assertion factory", {
+  f <- Character() ? function(x = 1L ? Integer(), y = ? Integer()) {
+    x + y
+  }
+
+  err <- rlang::catch_cnd(f(, 2L))
+
+  expect_s3_class(err, "typedr_return_error")
+  expect_identical(err$parent$call, quote(Character()))
+  expect_match(
+    conditionMessage(err),
+    "Expected <Character()> return value, got <Integer()>.",
+    fixed = TRUE
+  )
+})
+
 test_that("check_output returns the identical value on success", {
   env_value <- environment()
   expect_identical(check_output(env_value, Environment()), env_value)
