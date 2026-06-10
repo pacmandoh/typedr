@@ -31,6 +31,13 @@ test_that("check_output errors have structured classes", {
   expect_s3_class(err, "typedr_error")
 })
 
+test_that("check_output formats the actual return type only on failure", {
+  err <- rlang::catch_cnd(check_output(2L, Double()))
+
+  expect_match(conditionMessage(err), "Integer()", fixed = TRUE)
+  expect_match(conditionMessage(err), "type mismatch", fixed = TRUE)
+})
+
 test_that("check_arg works", {
   x <- 1
   y <- 2
