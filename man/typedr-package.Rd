@@ -19,6 +19,24 @@ structured and easier to inspect. Diagnostics use public assertion names,
 summarize repeated failures, and shorten long labels or values so generated
 implementation details do not dominate the message.
 }
+\section{Attach}{
+
+Load with \code{library(typedr, warn.conflicts = FALSE)}, as recommended for typedr
+and for the original \href{https://github.com/moodymudskipper/typed}{typed} package.
+This suppresses R's default masking messages for every export (including \verb{?},
+\code{declare()}, and assertion factories such as \code{Integer()}), and typedr prints
+its own short startup summary instead. The mask list is detected dynamically
+from the search path. Symbols that only mask the same package are collapsed
+into one line; a single-symbol mask or a symbol that masks multiple packages
+is listed individually.
+
+\code{library(typedr)} without \code{warn.conflicts = FALSE} still works, but R prints
+its own masking messages and typedr's summary may duplicate them.
+See \link{declare} for syntax.
+
+Set \code{options(typedr.quiet = TRUE)} to suppress typedr's startup summary.
+}
+
 \section{Relationship with typed}{
 
 typedr is derived from and deeply grateful to

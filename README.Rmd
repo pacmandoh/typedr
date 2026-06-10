@@ -72,9 +72,12 @@ remotes::install_github("pacmandoh/typedr")
 And attach with :
 
 ```{r}
-# masking warning about overriding `?`
 library(typedr, warn.conflicts = FALSE)
 ```
+
+`warn.conflicts = FALSE` suppresses R's default masking messages for all typedr
+exports and shows typedr's own startup summary instead. Use
+`options(typedr.quiet = TRUE)` to hide that summary.
 
 ## Set variable type
 
