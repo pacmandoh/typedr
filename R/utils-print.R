@@ -54,30 +54,54 @@ vsc_dark_plus <- function() {
     "|[(){}\\[\\],]"
   )
 
-  colour_token <- function(token, bracket_i) {
+  bracket_style_at <- function(depth) {
+    bracket_style[[((depth - 1L) %% length(bracket_style)) + 1L]]
+  }
+
+  colour_token <- function(token, bracket_stack) {
     if (grepl("^#", token)) {
-      return(list(text = col_comment(token), bracket_i = bracket_i))
+      return(list(text = col_comment(token), bracket_stack = bracket_stack))
     }
     if (grepl("^(\"|')", token)) {
-      return(list(text = col_string(token), bracket_i = bracket_i))
+      return(list(text = col_string(token), bracket_stack = bracket_stack))
     }
     if (token %in% reserved) {
-      return(list(text = col_reserved(token), bracket_i = bracket_i))
+      return(list(text = col_reserved(token), bracket_stack = bracket_stack))
     }
     if (token %in% constants) {
-      return(list(text = col_null(token), bracket_i = bracket_i))
+      return(list(text = col_null(token), bracket_stack = bracket_stack))
     }
     if (grepl("^[0-9]", token)) {
-      return(list(text = col_number(token), bracket_i = bracket_i))
+      return(list(text = col_number(token), bracket_stack = bracket_stack))
     }
-    if (token %in% c("(", ")", "{", "}", "[", "]", ",")) {
-      f <- bracket_style[[((bracket_i - 1L) %% length(bracket_style)) + 1L]]
-      return(list(text = f(token), bracket_i = bracket_i + 1L))
+    if (token %in% c("(", "{", "[")) {
+      depth <- length(bracket_stack) + 1L
+      return(list(
+        text = bracket_style_at(depth)(token),
+        bracket_stack = c(bracket_stack, depth)
+      ))
+    }
+    if (token %in% c(")", "}", "]")) {
+      depth <- if (length(bracket_stack)) {
+        bracket_stack[[length(bracket_stack)]]
+      } else {
+        1L
+      }
+      if (length(bracket_stack)) {
+        bracket_stack <- bracket_stack[-length(bracket_stack)]
+      }
+      return(list(
+        text = bracket_style_at(depth)(token),
+        bracket_stack = bracket_stack
+      ))
+    }
+    if (identical(token, ",")) {
+      return(list(text = token, bracket_stack = bracket_stack))
     }
     if (grepl("^[A-Za-z.][A-Za-z0-9_.]*$", token)) {
-      return(list(text = col_call(token), bracket_i = bracket_i))
+      return(list(text = col_call(token), bracket_stack = bracket_stack))
     }
-    list(text = col_operator(token), bracket_i = bracket_i)
+    list(text = col_operator(token), bracket_stack = bracket_stack)
   }
 
   vapply(
@@ -92,7 +116,7 @@ vsc_dark_plus <- function() {
       out <- character(length(m) * 2 + 1)
       pos <- 1L
       k <- 1L
-      bracket_i <- 1L
+      bracket_stack <- integer()
 
       for (i in seq_along(m)) {
         start <- m[[i]]
@@ -103,9 +127,9 @@ vsc_dark_plus <- function() {
         }
 
         token <- substr(line, start, start + len - 1L)
-        coloured <- colour_token(token, bracket_i)
+        coloured <- colour_token(token, bracket_stack)
         out[[k]] <- coloured$text
-        bracket_i <- coloured$bracket_i
+        bracket_stack <- coloured$bracket_stack
         k <- k + 1L
         pos <- start + len
       }
@@ -310,6 +334,7 @@ pretty_fn <- function(
 .typedr_print_fn_meta <- function(
   truncated = FALSE,
   args_truncated = FALSE,
+  has_args = FALSE,
   color = TRUE
 ) {
   if (isTRUE(truncated)) {
@@ -324,7 +349,10 @@ pretty_fn <- function(
   }
   if (color && !is_installed("prettycode")) {
     show_tip <- !isTRUE(.typedr_state$warned_once$prettycode_missing)
-    if (show_tip && (isTRUE(truncated) || isTRUE(args_truncated))) {
+    if (
+      show_tip &&
+        (isTRUE(truncated) || isTRUE(args_truncated) || isTRUE(has_args))
+    ) {
       cli_verbatim("")
     }
     .warn_once(
