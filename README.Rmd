@@ -242,41 +242,6 @@ The first underlying assertion error remains attached as the parent condition,
 so `rlang::last_trace()` still contains the useful root cause without expanding
 every repeated failure.
 
-### Performance
-
-typedr prioritizes clear runtime errors over zero-cost checks, but native
-assertion factories such as `Integer()` and `Double()` also use two internal
-optimizations on the success path:
-
-1. **Native fast path.** When a factory call is simple (no `...` dots, no `each`
-   or `levels`, and not `List(data_frame_ok = FALSE)`), the generated assertion
-   can return immediately after a lightweight type check. Failures still fall
-   back to the full slow path, so error classes and messages stay the same.
-
-2. **Definition-time caching.** When you write `? function(...)`, typedr evaluates
-   assertion factories such as `Integer()` once while building the function, then
-   reuses the cached assertion on every call. This removes repeated factory work
-   from hot paths such as `check_arg()` and `check_output()`.
-
-**What this means in practice:**
-
-| Cost | When | Typical order |
-|------|------|---------------|
-| Factory creation (`Integer()`, etc.) | Once, when a typed function is defined | ~1–2 ms |
-| Cached typed function call (native types) | Every call after definition | ~30 µs |
-| Direct assertion call (`Integer()(x)`) | Every call | ~3 µs on success |
-| Custom `new_type()`, combinators, dotted factories | Every call | Slow path (ms) |
-
-Definition-time caching trades a **one-time** compile cost when a typed function
-is created for much lower **per-call** overhead. Each cached assertion is a single
-function object stored in the typed function's enclosing environment; memory use
-is usually negligible compared with typical data or model objects.
-
-Optimizations apply to native factories and simple typed functions. They do **not**
-replace the slow path for custom assertions, union/intersection combinators,
-dependent arguments, or factories with extra named `...` dots (see *Advanced type
-restriction using arguments* above).
-
 ### Constants
 
 To define a constant, we just surround the variable by parentheses (think of
