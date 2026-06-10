@@ -19,7 +19,6 @@ Imports:
     cli (>= 3.6.5)
 Suggests: 
     testthat (>= 3.2.3),
-    pkgload,
     covr,
     knitr,
     rmarkdown,
