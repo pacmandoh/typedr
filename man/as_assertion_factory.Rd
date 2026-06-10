@@ -7,7 +7,8 @@
 as_assertion_factory(
   f,
   mode = c("auto", "assertion", "predicate"),
-  message = NULL
+  message = NULL,
+  typedr_fast = NULL
 )
 }
 \arguments{
@@ -21,6 +22,11 @@ treats scalar logical values that are not the original value as predicates.}
 
 \item{message}{Optional message to use when a predicate assertion fails or
 when a non-typedr error is wrapped.}
+
+\item{typedr_fast}{Optional fast-path specification for native assertion
+factories. When the factory is invoked without extra \code{...} conditions and
+without blocked formals such as \code{each} or \code{levels}, generated assertions
+take a success-only fast path before falling back to the standard checker.}
 }
 \value{
 A function with class \code{assertion_factory}.

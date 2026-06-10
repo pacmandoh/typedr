@@ -8,7 +8,7 @@
 \usage{
 check_output(.output, .assertion, ..., .assertion_expr = NULL)
 
-check_arg(.arg, .assertion, ..., .bind = FALSE)
+check_arg(.arg, .assertion, ..., .bind = FALSE, .assertion_expr = NULL)
 
 check_dependent_arg(
   .arg,

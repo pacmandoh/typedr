@@ -75,16 +75,20 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
 #' @param ... Additional arguments passed to the assertion.
 #' @param .bind Whether to actively bind the argument so later assignments must
 #'   also satisfy the assertion.
+#' @param .assertion_expr Optional expression used in error messages. This is
+#'   supplied by typedr-generated code.
 #' @return `check_arg()` returns `NULL` invisibly and is called for side effects.
 #'
 #' @export
 #' @importFrom rlang caller_env enexpr enexprs is_missing as_name as_label
 #' @importFrom rlang call_name caller_call expr eval_bare call2 try_fetch
 #' @importFrom cli cli_abort
-check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
+check_arg <- function(.arg, .assertion, ..., .bind = FALSE, .assertion_expr = NULL) {
   call <- caller_env()
   arg_expr <- enexpr(.arg)
-  .assertion_expr <- enexpr(.assertion)
+  if (is_null(.assertion_expr)) {
+    .assertion_expr <- enexpr(.assertion)
+  }
   var_nm <- if (is_symbol(arg_expr)) as_name(arg_expr) else as_label(arg_expr)
 
   if (is_missing(.arg)) {
@@ -105,7 +109,7 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
   }
 
   if (.bind) {
-    assertion_expr <- enexpr(.assertion)
+    assertion_call <- enexpr(.assertion)
     dots_exprs <- enexprs(...)
 
     f <- eval_bare(
@@ -116,7 +120,7 @@ check_arg <- function(.arg, .assertion, ..., .bind = FALSE) {
             function(assigned_value) {
               if (!is_missing(assigned_value)) {
                 tmp <- try_fetch(
-                  !!call2(assertion_expr, expr(assigned_value), !!!dots_exprs),
+                  !!call2(assertion_call, expr(assigned_value), !!!dots_exprs),
                   error = identity
                 )
                 arg_nm <- !!var_nm

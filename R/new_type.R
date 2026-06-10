@@ -120,6 +120,10 @@
 #'   treats scalar logical values that are not the original value as predicates.
 #' @param message Optional message to use when a predicate assertion fails or
 #'   when a non-typedr error is wrapped.
+#' @param typedr_fast Optional fast-path specification for native assertion
+#'   factories. When the factory is invoked without extra `...` conditions and
+#'   without blocked formals such as `each` or `levels`, generated assertions
+#'   take a success-only fast path before falling back to the standard checker.
 #' @return A function with class `assertion_factory`.
 #'
 #' @export
@@ -128,7 +132,8 @@
 as_assertion_factory <- function(
   f,
   mode = c("auto", "assertion", "predicate"),
-  message = NULL
+  message = NULL,
+  typedr_fast = NULL
 ) {
   mode <- match.arg(mode)
   if (!is_null(message) && (!is_character(message) || length(message) != 1L)) {
@@ -152,6 +157,7 @@ as_assertion_factory <- function(
   predicate <- .typedr_predicate_label(f)
   message_expr <- if (is_null(message)) quote(NULL) else message
   predicate_expr <- if (is_null(predicate)) quote(NULL) else predicate
+  typedr_fast_expr <- if (is_null(typedr_fast)) quote(NULL) else typedr_fast
 
   res <- new_function(
     pairlist2(!!!fn_fmls(f)[-1], ... = ),
@@ -165,6 +171,26 @@ as_assertion_factory <- function(
       f_call <- substitute(!!f_call)
       # remove if empty
       f_call <- Filter(function(value) !identical(value, expr(expr = )), f_call)
+
+      footer <- !!dots_call
+      fast_enabled <- .typedr_fast_factory_eligible(
+        !!typedr_fast_expr,
+        f_call,
+        footer
+      )
+      fast_args <- if (fast_enabled) {
+        .typedr_fast_call_args(f_call)
+      } else {
+        list()
+      }
+
+      fast_header <- NULL
+      if (fast_enabled) {
+        fast_header <- .typedr_fast_assertion_header(
+          !!typedr_fast_expr,
+          fast_args
+        )
+      }
 
       header <- call2(
         "{",
@@ -187,14 +213,9 @@ as_assertion_factory <- function(
         )
       )
 
-      # the footer is made of additional assertions derived from `...`
-      footer <- !!dots_call
-
-      if (is_null(footer)) {
-        body <- call2("{", header, expr(value))
-      } else {
-        body <- call2("{", header, footer, expr(value))
-      }
+      body_parts <- list(fast_header, header, footer, expr(value))
+      body_parts <- body_parts[!vapply(body_parts, is.null, logical(1))]
+      body <- as.call(c(list(as.name("{")), body_parts))
       assertion <- new_function(pairlist2(value = ), body)
       class(assertion) <- c("typedr_assertion", "function")
       assertion
