@@ -6,7 +6,6 @@ linters: linters_with_defaults(
   )
 exclusions: list(
     "renv",
-    "R/import-standalone-obj-type.R",
     "R/import-standalone-types-check.R"
   )
 encoding: "UTF-8"
