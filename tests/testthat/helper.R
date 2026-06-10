@@ -1,4 +1,8 @@
 # fmt: skip file
+if (!"package:typedr" %in% search()) {
+  pkgload::load_all(".", quiet = TRUE)
+}
+
 capture_typedr_cli <- function(expr) {
   out <- character()
   append <- function(x) {
