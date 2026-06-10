@@ -1,3 +1,4 @@
+# fmt: skip file
 test_that("as_assertion_factory builds assertion factories", {
   Numeric <- as_assertion_factory(function(value, length = NULL) {
     if (!is_bare_numeric(value)) {
@@ -8,7 +9,6 @@ test_that("as_assertion_factory builds assertion factories", {
     }
     value
   })
-
   expect_s3_class(Numeric, "assertion_factory")
   expect_true(is_function(Numeric))
 
@@ -261,6 +261,12 @@ test_that("error_call handles multi-line deparsed assertions", {
   expect_identical(err$parent$call, quote(Character()))
   expect_match(conditionMessage(err), "Invalid initial value", fixed = TRUE)
   expect_match(conditionMessage(err), "not a fruit", fixed = TRUE)
+})
+
+test_that("error_call falls back to Type() for long anonymous calls", {
+  args <- paste(rep("1", 80L), collapse = ", ")
+  call_expr <- parse(text = paste0("(function(x) x)(", args, ")"))[[1]]
+  expect_identical(.typedr_error_call(call_expr), call2("Type"))
 })
 
 test_that("formula dots add custom checks with and without custom messages", {

@@ -562,9 +562,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
   }
   env_bind_active(call, !!x := f)
 
-  if (value_missing && interactive() && identical(call, globalenv())) {
-    .typedr_inform_declare_unset(x, assertion_quoted)
-  }
+  .typedr_inform_declare_unset(x, assertion_quoted, call, value_missing)
 
   return(invisible(.typedr_unwrap(value))) # R/utils.R
 }

@@ -19,6 +19,19 @@ test_that("check_output supports custom assertion expressions", {
     check_output(2, Double(), .assertion_expr = quote(my_type)),
     2
   )
+
+  err <- rlang::catch_cnd(
+    check_output(2L, Double(), .assertion_expr = quote(my_type))
+  )
+  expect_match(conditionMessage(err), "my_type", fixed = TRUE)
+})
+
+test_that("check_output peels typedr_value wrappers before returning", {
+  wrapped <- .apply_typedr_attrs(3L, "h", quote(Integer()), FALSE)
+  expect_identical(check_output(wrapped, function(x) x), 3L)
+
+  wrapped_null <- structure(list(), class = c("typedr_value", "typedr_null"))
+  expect_null(check_output(wrapped_null, function(x) x))
 })
 
 test_that("check_output errors have structured classes", {
@@ -229,8 +242,12 @@ test_that("declare supports missing initial value", {
 })
 
 test_that("declare unset inform reports assertion and name", {
-  inform <- rlang::catch_cnd(
-    .typedr_inform_declare_unset("inform_z", quote(Double()))
+  inform <- with_mocked_bindings(
+    rlang::catch_cnd(
+      .typedr_inform_declare_unset("inform_z", quote(Double()), globalenv(), TRUE)
+    ),
+    interactive = function() TRUE,
+    .package = "base"
   )
 
   expect_s3_class(inform, "rlang_message")
@@ -240,23 +257,53 @@ test_that("declare unset inform reports assertion and name", {
   expect_match(conditionMessage(inform), "unset", fixed = TRUE)
 })
 
+test_that("declare unset inform skips when guards fail", {
+  expect_null(
+    rlang::catch_cnd(
+      .typedr_inform_declare_unset("inform_z", quote(Double()), new.env(), TRUE)
+    )
+  )
+  expect_null(
+    with_mocked_bindings(
+      rlang::catch_cnd(
+        .typedr_inform_declare_unset(
+          "inform_z",
+          quote(Double()),
+          globalenv(),
+          TRUE
+        )
+      ),
+      interactive = function() FALSE,
+      .package = "base"
+    )
+  )
+  expect_null(
+    rlang::catch_cnd(
+      .typedr_inform_declare_unset(
+        "inform_z",
+        quote(Double()),
+        globalenv(),
+        FALSE
+      )
+    )
+  )
+})
+
 test_that("declare skips unset inform outside the global environment", {
-  calls <- 0L
-  with_mocked_bindings(
+  out <- with_mocked_bindings(
     {
       f <- function() {
-        declare("in_func", Double())
+        inform <- rlang::catch_cnd(declare("in_func", Double()))
         in_func <- 1
-        in_func
+        list(inform = inform, value = in_func)
       }
-      expect_equal(f(), 1, ignore_attr = TRUE)
+      f()
     },
-    .typedr_inform_declare_unset = function(x, assertion_quoted) {
-      calls <<- calls + 1L
-    },
-    .package = "typedr"
+    interactive = function() TRUE,
+    .package = "base"
   )
-  expect_equal(calls, 0L)
+  expect_null(out$inform)
+  expect_equal(out$value, 1, ignore_attr = TRUE)
 })
 
 test_that("declare does not inform when an initial value is supplied", {
