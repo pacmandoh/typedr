@@ -161,13 +161,17 @@ type_printer <- function(type, printer) {
   x
 }
 
+.typedr_is_interactive <- function() {
+  interactive()
+}
+
 .typedr_inform_declare_unset <- function(
   x,
   assertion_quoted,
   call = caller_env(),
   value_missing = FALSE
 ) {
-  if (!value_missing || !interactive() || !identical(call, globalenv())) {
+  if (!value_missing || !.typedr_is_interactive() || !identical(call, globalenv())) {
     return(invisible(NULL))
   }
   assertion_label <- .typedr_assertion_diagnostic_label(assertion_quoted)
