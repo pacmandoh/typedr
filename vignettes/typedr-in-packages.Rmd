@@ -149,7 +149,9 @@ Fruit <- function() {
     # we could have several args named ... to apply multiple checks
   )
 }
+```
 
+```{r, error = TRUE}
 Fruit() ? x <- "potatoe"
 ```
 
