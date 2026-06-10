@@ -124,13 +124,9 @@
     matrix = {
       if (!("matrix" %in% class(value))) {
         FALSE
-      } else if (
-        !is_null(params$nrow) && nrow(value) != params$nrow
-      ) {
+      } else if (!is_null(params$nrow) && nrow(value) != params$nrow) {
         FALSE
-      } else if (
-        !is_null(params$ncol) && ncol(value) != params$ncol
-      ) {
+      } else if (!is_null(params$ncol) && ncol(value) != params$ncol) {
         FALSE
       } else {
         TRUE
@@ -139,13 +135,9 @@
     data.frame = {
       if (!("data.frame" %in% class(value))) {
         FALSE
-      } else if (
-        !is_null(params$nrow) && nrow(value) != params$nrow
-      ) {
+      } else if (!is_null(params$nrow) && nrow(value) != params$nrow) {
         FALSE
-      } else if (
-        !is_null(params$ncol) && ncol(value) != params$ncol
-      ) {
+      } else if (!is_null(params$ncol) && ncol(value) != params$ncol) {
         FALSE
       } else {
         TRUE
