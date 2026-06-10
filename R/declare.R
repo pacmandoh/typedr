@@ -6,7 +6,9 @@
 #'
 #' @export
 #' @return `check_output()` returns `.output` if it satisfies the assertion and
-#'   throws an error otherwise.
+#'   throws an error otherwise. On success, any internal `typedr_value` metadata
+#'   is stripped first, so callers receive a plain R object rather than a
+#'   declared-variable wrapper.
 #' @rdname check_arg
 #'
 #' @importFrom rlang call_name expr_deparse enexpr try_fetch caller_env %||%
@@ -42,7 +44,7 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
       call = caller_env()
     )
   }
-  .output
+  .typedr_peel_value(.output) # R/utils.R
 }
 
 #' Check Argument Types and Return Type
@@ -53,13 +55,20 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
 #' binding so later assignments are checked as well. `check_output()` checks that
 #' a value, usually a return value, satisfies an assertion.
 #'
+#' Typed function calls therefore validate return types at the boundary, but still
+#' return normal R objects (for example `3L`, not a `typedr_value` wrapper).
+#' Internal `declare()` variables keep their active bindings and metadata only
+#' inside the environment where they were declared.
+#'
 #' typedr reports failures with cli messages and structured rlang-compatible
 #' condition classes such as `typedr_type_error`, `typedr_assign_error`, and
 #' `typedr_return_error`. These classes make errors easier to test, catch, and
 #' diagnose than plain message-only failures. Long guard and assertion
 #' expressions are shortened in diagnostic bullets while the original
 #' expressions remain available in the generated function and condition data.
-#' Exceptionally long parent calls are displayed as `Type()`.
+#' Exceptionally long union or intersection parent calls are displayed as
+#' `Type()`. Long single-factory calls use the factory name (for example
+#' `Character()`).
 #'
 #' @param .arg Function argument to check.
 #' @param .assertion Assertion to apply.

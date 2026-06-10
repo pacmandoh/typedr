@@ -62,6 +62,28 @@ test_that("check_output returns the identical value on success", {
   expect_identical(check_output(list_value, List()), list_value)
 })
 
+test_that("check_output returns plain values for typedr_value inputs", {
+  f <- Integer() ? function(x = 1L ? Integer(), y = ? Integer()) {
+    Integer() ? h
+    h <- x + y
+    return(h)
+  }
+
+  out <- f(, 2L)
+  expect_equal(out, 3L)
+  expect_identical(class(out), "integer")
+  expect_false(inherits(out, "typedr_value"))
+
+  f_implicit <- Integer() ? function(x = 1L ? Integer(), y = ? Integer()) {
+    Integer() ? h
+    h <- x + y
+  }
+  expect_identical(f(, 2L), f_implicit(, 2L))
+
+  wrapped <- .apply_typedr_attrs(3L, "h", quote(Integer()), FALSE)
+  expect_identical(check_output(wrapped, Integer()), 3L)
+})
+
 test_that("check_output failure preserves full diagnostic text", {
   err <- rlang::catch_cnd(
     check_output(2L, Double(), .assertion_expr = quote(Double()))
