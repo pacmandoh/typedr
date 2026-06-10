@@ -90,6 +90,10 @@ first `?`, both for efficiency and readability. It also gives typedr a place to
 attach structured error classes and richer print metadata to the generated
 function.
 
+`check_output()` validates return values at the function boundary and returns
+plain R objects to callers, even when the returned value came from a declared
+variable inside the body.
+
 Note that you're free to use these functions directly in your code if you don't
 like the `?` syntax.
 

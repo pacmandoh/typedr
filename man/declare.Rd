@@ -51,6 +51,16 @@ In those cases an active binding is defined so \code{var} returns \code{value} (
 \code{NULL} if none was provided). If \code{const} is \code{FALSE} (the default), the
 value can later be changed by assigning to \code{var}, but assigning a value that
 doesn't satisfy the assertion triggers an error.
+
+When a variable is declared without an initial value at the top level of an
+interactive session, typedr informs you that the variable was declared but is
+still unset. The message is shown once per declaration and is suppressed
+inside functions and non-interactive contexts.
+
+After a value has been assigned, reading the variable at the REPL uses
+typedr's value printer, which shows the underlying data plus assertion
+metadata. That wrapper is for declared variables only; typed functions return
+plain values to their callers once \code{check_output()} succeeds.
 }
 
 \section{Set a function's return type}{
@@ -61,7 +71,9 @@ The syntaxes \verb{assertion ? function(<args>) \{<body>\}} and
 \code{c("typedr", "function")}.
 The returned function will have its body modified so that return values are
 wrapped inside a \code{check_output()} call. Printing the function will display
-the return type.
+the return type. Successful calls return plain R objects to callers; any
+internal \code{typedr_value} metadata from function-body \code{declare()} variables is
+removed on the way out.
 }
 
 \section{Set a function argument's type}{
