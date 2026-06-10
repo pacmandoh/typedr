@@ -42,7 +42,9 @@ rejected when \code{.guard} does not match.}
 }
 \value{
 \code{check_output()} returns \code{.output} if it satisfies the assertion and
-throws an error otherwise.
+throws an error otherwise. On success, any internal \code{typedr_value} metadata
+is stripped first, so callers receive a plain R object rather than a
+declared-variable wrapper.
 
 \code{check_arg()} returns \code{NULL} invisibly and is called for side effects.
 }
@@ -54,11 +56,18 @@ binding so later assignments are checked as well. \code{check_output()} checks t
 a value, usually a return value, satisfies an assertion.
 }
 \details{
+Typed function calls therefore validate return types at the boundary, but still
+return normal R objects (for example \code{3L}, not a \code{typedr_value} wrapper).
+Internal \code{declare()} variables keep their active bindings and metadata only
+inside the environment where they were declared.
+
 typedr reports failures with cli messages and structured rlang-compatible
 condition classes such as \code{typedr_type_error}, \code{typedr_assign_error}, and
 \code{typedr_return_error}. These classes make errors easier to test, catch, and
 diagnose than plain message-only failures. Long guard and assertion
 expressions are shortened in diagnostic bullets while the original
 expressions remain available in the generated function and condition data.
-Exceptionally long parent calls are displayed as \code{Type()}.
+Exceptionally long union or intersection parent calls are displayed as
+\code{Type()}. Long single-factory calls use the factory name (for example
+\code{Character()}).
 }

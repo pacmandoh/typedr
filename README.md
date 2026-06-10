@@ -42,6 +42,10 @@ developer experience:
 - helper printers such as `print_typedr()`, `print_all_args()`,
   `print_whole_fn()`, `print_whole_value()`, and `print_stats()` expose
   the richer print layer when you need more detail
+- typed function print output shows the rewritten body, return/argument
+  types, optional truncation hints, and (once per session) a note when
+  **prettycode** is not installed; install **prettycode** for fuller
+  syntax highlighting
 
 ## Installation
 
@@ -128,6 +132,13 @@ y
 #> • assertion: <Integer(3)>
 #> • const: FALSE
 ```
+
+Declaring a variable without an initial value (`Character() ? x` or
+`declare("x", Character())`) leaves it unset until you assign. In an
+interactive session at the top level, typedr informs you that the
+variable was declared but still unset. After assignment, reading the
+variable at the REPL shows typedr’s value printer (data plus assertion
+metadata).
 
 ### Assertion factories and assertions
 
@@ -247,12 +258,18 @@ Useful arguments might be for instance, `anyDuplicated = 0L`,
 
 That makes assertion factories very flexible. If that is still not
 flexible enough, arguments named `...` can add custom restrictions. For
-repeated use, this is usually better expressed as a wrapper.
+repeated use, this is usually better expressed as a wrapper. The example
+below assigns an invalid value on purpose to show the custom message
+from the `...` check:
 
 ``` r
 Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")) ? 
   x <- "potatoe"
-#> Error in if (nchar(expr_deparse(x), type = "width") <= max_chars) {: the condition has length > 1
+#> Error in `declare()`:
+#> ! Invalid initial value for `x`.
+#> Caused by error in `Character()`:
+#> ! `value` is not a fruit!
+#> ✖ `value %in% c("apple", "pear", "cherry")`: FALSE, `expected`: TRUE
 ```
 
 This is often better done by defining a wrapper as shown below.
@@ -264,8 +281,10 @@ Internal wrapper names such as `f()` are replaced by calls such as
 `Double()` or a custom factory name. Repeated container failures show
 only the first failed item or column and the number of remaining
 failures. Long names, expressions, values, and union candidate lists are
-shortened in diagnostic bullets. Exceptionally long parent calls use the
-neutral `Type()` label.
+shortened in diagnostic bullets. Exceptionally long union or
+intersection parent calls use the neutral `Type()` label; long
+single-factory calls fall back to the factory name (for example
+`Character()`).
 
 ``` r
 many_columns <- as.data.frame(setNames(
@@ -336,6 +355,7 @@ add
 #> Arguments:
 #> • `x`: <Double()>
 #> • `y`: <Double()> (default: 1)
+#> 
 #> ! {prettycode} is not installed, using basic {typedr} syntax highlighting.
 #> ℹ Install it with `install.packages('prettycode')` for fuller R syntax
 #>   highlighting.
@@ -507,6 +527,11 @@ add_or_subtract
 #> }
 #> Return: <Double()>
 ```
+
+The function body is rewritten so return expressions go through
+`check_output()`. Callers still receive plain R values after the check
+passes; internal `declare()` variables keep their active bindings only
+inside the function.
 
 We see that the returned values have been wrapped inside `check_output`
 calls.

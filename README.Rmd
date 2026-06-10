@@ -51,6 +51,9 @@ experience:
 * helper printers such as `print_typedr()`, `print_all_args()`,
   `print_whole_fn()`, `print_whole_value()`, and `print_stats()` expose the
   richer print layer when you need more detail
+* typed function print output shows the rewritten body, return/argument types,
+  optional truncation hints, and (once per session) a note when **prettycode**
+  is not installed; install **prettycode** for fuller syntax highlighting
 
 ## Installation
 
@@ -115,6 +118,12 @@ x
 declare("y", Integer(3), 1:3)
 y
 ```
+
+Declaring a variable without an initial value (`Character() ? x` or
+`declare("x", Character())`) leaves it unset until you assign. In an
+interactive session at the top level, typedr informs you that the variable was
+declared but still unset. After assignment, reading the variable at the REPL
+shows typedr's value printer (data plus assertion metadata).
 
 ### Assertion factories and assertions
 
@@ -201,9 +210,10 @@ Useful arguments might be for instance, `anyDuplicated = 0L`, `names = NULL`,
 
 That makes assertion factories very flexible. If that is still not flexible
 enough, arguments named `...` can add custom restrictions. For repeated use,
-this is usually better expressed as a wrapper.
+this is usually better expressed as a wrapper. The example below assigns an
+invalid value on purpose to show the custom message from the `...` check:
 
-```{r}
+```{r, error = TRUE}
 Character(1, ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")) ? 
   x <- "potatoe"
 ```
@@ -217,7 +227,8 @@ wrapper names such as `f()` are replaced by calls such as `Double()` or a custom
 factory name. Repeated container failures show only the first failed item or
 column and the number of remaining failures. Long names, expressions, values,
 and union candidate lists are shortened in diagnostic bullets. Exceptionally
-long parent calls use the neutral `Type()` label.
+long union or intersection parent calls use the neutral `Type()` label; long
+single-factory calls fall back to the factory name (for example `Character()`).
 
 ```{r}
 many_columns <- as.data.frame(setNames(
@@ -369,6 +380,11 @@ add_or_subtract <- Double() ? function (x, y, subtract = FALSE) {
 }
 add_or_subtract
 ```
+
+The function body is rewritten so return expressions go through
+`check_output()`. Callers still receive plain R values after the check passes;
+internal `declare()` variables keep their active bindings only inside the
+function.
 
 We see that the returned values have been wrapped inside `check_output` calls.
 

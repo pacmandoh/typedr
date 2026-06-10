@@ -41,5 +41,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Pacman Doh \email{pacmandoh@outlook.com}
 
+Authors:
+\itemize{
+  \item Pacman Doh \email{pacmandoh@outlook.com}
+}
+
 }
 \keyword{internal}

@@ -35,5 +35,7 @@ non-typedr error already has a useful message, that message becomes the
 typedr error message instead of being repeated as a parent error. Generated
 wrapper names are replaced with the public assertion-factory call in typedr
 errors, and long predicate expressions or values are shortened in diagnostic
-bullets. Exceptionally long assertion calls use the neutral \code{Type()} label.
+bullets. Exceptionally long union or intersection calls use the neutral
+\code{Type()} label; long single-factory calls fall back to the factory name
+(for example \code{Character()}).
 }

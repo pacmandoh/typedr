@@ -12,7 +12,6 @@ Encoding: UTF-8
 Language: en
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 URL: https://github.com/pacmandoh/typedr, https://pacmandoh.github.io/typedr/
 BugReports: https://github.com/pacmandoh/typedr/issues
 Imports: 
@@ -44,3 +43,4 @@ Collate:
     'utils-print.R'
     'utils.R'
     'zzz.R'
+Config/roxygen2/version: 8.0.0

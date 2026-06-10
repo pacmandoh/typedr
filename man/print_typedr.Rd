@@ -59,3 +59,23 @@ convenient presets. They are useful when the default output is truncated or
 when you want to inspect all typed arguments, the whole rewritten function
 body, or value metadata.
 }
+\section{Default print layout}{
+
+
+Typed functions print in this order: object title, syntax-highlighted body,
+return type, argument types, optional footer hints (\verb{Run print_whole_fn()} /
+\verb{Run print_all_args()} when output is truncated), and an optional once-per-
+session note when the optional \strong{prettycode} package is not installed.
+Install \strong{prettycode} for richer syntax highlighting; typedr falls back to a
+built-in highlighter otherwise.
+}
+
+\section{Print options}{
+
+
+Use \code{options()} or \code{print_typedr()} arguments to control truncation and
+highlighting: \code{typedr.print.max_args}, \code{typedr.print.fn_limit_lines},
+\code{typedr.print.fn_color}, \code{typedr.print.fn_lineno}, \code{typedr.print.fn_wrap},
+\code{typedr.print.fn_indent}, and \code{typedr.print.highlight}.
+}
+

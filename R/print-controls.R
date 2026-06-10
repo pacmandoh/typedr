@@ -7,6 +7,22 @@
 #' when you want to inspect all typed arguments, the whole rewritten function
 #' body, or value metadata.
 #'
+#' @section Default print layout:
+#'
+#' Typed functions print in this order: object title, syntax-highlighted body,
+#' return type, argument types, optional footer hints (`Run print_whole_fn()` /
+#' `Run print_all_args()` when output is truncated), and an optional once-per-
+#' session note when the optional **prettycode** package is not installed.
+#' Install **prettycode** for richer syntax highlighting; typedr falls back to a
+#' built-in highlighter otherwise.
+#'
+#' @section Print options:
+#'
+#' Use `options()` or `print_typedr()` arguments to control truncation and
+#' highlighting: `typedr.print.max_args`, `typedr.print.fn_limit_lines`,
+#' `typedr.print.fn_color`, `typedr.print.fn_lineno`, `typedr.print.fn_wrap`,
+#' `typedr.print.fn_indent`, and `typedr.print.highlight`.
+#'
 #' @param x A typedr function or typedr value. Defaults to `.Last.value`.
 #' @param ... Additional arguments passed to `print()`.
 #' @param max_args Maximum number of typed arguments to display.
