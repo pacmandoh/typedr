@@ -270,7 +270,8 @@ Any <- as_assertion_factory(
   function(value, length = NULL) {
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "any")
 )
 
 #' @export
@@ -283,7 +284,8 @@ Logical <- as_assertion_factory(
     .typedr_check_typeof(value, "logical")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "atomic", typeof = "logical")
 )
 
 #' @export
@@ -296,7 +298,8 @@ Integer <- as_assertion_factory(
     .typedr_check_typeof(value, "integer")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "atomic", typeof = "integer")
 )
 
 #' @export
@@ -309,7 +312,8 @@ Double <- as_assertion_factory(
     .typedr_check_typeof(value, "double")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "atomic", typeof = "double")
 )
 
 #' @export
@@ -322,7 +326,8 @@ Character <- as_assertion_factory(
     .typedr_check_typeof(value, "character")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "atomic", typeof = "character")
 )
 
 #' @export
@@ -335,7 +340,8 @@ Raw <- as_assertion_factory(
     .typedr_check_typeof(value, "raw")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "atomic", typeof = "raw")
 )
 
 #' @export
@@ -370,7 +376,8 @@ List <- as_assertion_factory(
       ))
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "list")
 )
 
 #' @export
@@ -389,7 +396,8 @@ Null <- as_assertion_factory(
       ))
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "null")
 )
 
 #' @export
@@ -401,7 +409,8 @@ Closure <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "closure")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "closure")
 )
 
 #' @export
@@ -413,7 +422,8 @@ Special <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "special")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "special")
 )
 
 #' @export
@@ -425,7 +435,8 @@ Builtin <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "builtin")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "builtin")
 )
 
 #' @export
@@ -437,7 +448,8 @@ Environment <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "environment")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "environment")
 )
 
 #' @export
@@ -449,7 +461,8 @@ Symbol <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "symbol")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "symbol")
 )
 
 #' @export
@@ -474,7 +487,8 @@ Pairlist <- as_assertion_factory(
     }
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "pairlist")
 )
 
 #' @export
@@ -486,7 +500,8 @@ Language <- as_assertion_factory(
     }
     .typedr_check_typeof(value, "language")
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "language")
 )
 
 #' @export
@@ -503,7 +518,8 @@ Expression <- as_assertion_factory(
     .typedr_check_typeof(value, "expression")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "typeof", typeof = "expression")
 )
 
 #' @export
@@ -525,7 +541,8 @@ Function <- as_assertion_factory(
       ))
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "is_function")
 )
 
 #' @export
@@ -564,7 +581,8 @@ Factor <- as_assertion_factory(
       ))
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "is_factor")
 )
 
 #' @export
@@ -586,7 +604,8 @@ Data.frame <- as_assertion_factory(
       )
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "data.frame")
 )
 
 #' @export
@@ -599,7 +618,8 @@ Matrix <- as_assertion_factory(
     .typedr_check_class(value, "matrix")
     .typedr_check_shape(value, nrow, ncol)
     value
-  }
+  },
+  typedr_fast = list(kind = "matrix")
 )
 
 #' @export
@@ -633,7 +653,8 @@ Array <- as_assertion_factory(
       ))
     }
     value
-  }
+  },
+  typedr_fast = list(kind = "array")
 )
 
 #' @export
@@ -646,7 +667,8 @@ Date <- as_assertion_factory(
     .typedr_check_class(value, "Date")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "class", class = "Date")
 )
 
 #' @export
@@ -659,7 +681,8 @@ Time <- as_assertion_factory(
     .typedr_check_class(value, "POSIXct")
     .typedr_check_length(value, length)
     value
-  }
+  },
+  typedr_fast = list(kind = "class", class = "POSIXct")
 )
 
 #' @export

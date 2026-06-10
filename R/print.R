@@ -93,7 +93,7 @@ print.typedr <- function(x, ...) {
   cli_text("{.strong {col_grey('<typedr function>')}}")
   fn_out <- pretty_fn(
     # R/utils-print.R
-    x,
+    .typedr_function_for_print(x),
     lineno = fn_lineno,
     color = fn_color,
     wrap = fn_wrap,

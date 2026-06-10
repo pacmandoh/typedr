@@ -413,7 +413,7 @@
     }
 
     # Build the new function with attributes and class
-    f <- new_function(fmls, body, env = call)
+    f <- .typedr_build_typed_function(fmls, body, call)
 
     if (args_are_annotated) {
       attr(f, "arg_types") <- annotations_attr

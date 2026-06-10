@@ -31,6 +31,8 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 Collate: 
     'assertion_combinators.R'
+    'cache-assertion.R'
+    'check-fast.R'
     'declare.R'
     'import-standalone-types-check.R'
     'new_type.R'

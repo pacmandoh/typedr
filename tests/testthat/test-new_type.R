@@ -29,6 +29,7 @@ test_that("as_assertion_factory preserves generated assertion shape", {
 
   expect_match(body_text, "f <- function", fixed = TRUE)
   expect_match(body_text, ".typedr_run_assertion_check", fixed = TRUE)
+  expect_no_match(body_text, ".typedr_fast_try", fixed = TRUE)
   expect_match(body_text, "f(value,", fixed = TRUE)
   expect_match(body_text, "length = 1", fixed = TRUE)
 })

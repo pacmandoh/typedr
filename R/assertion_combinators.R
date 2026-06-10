@@ -97,7 +97,7 @@ typedr_union_assertion <- function(assertions, labels) {
     cli_abort(
       c(
         "Value does not satisfy any allowed {.cls Type()}.",
-        "x" = "Expected one of: {label_summary}."
+        "x" = "Expected one of: {.cls {label_summary}}."
       ),
       class = c(
         "typedr_union_error",
