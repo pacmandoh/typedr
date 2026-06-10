@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(typedr)
+suppressPackageStartupMessages(library(typedr, warn.conflicts = FALSE))
 
 test_check("typedr")
