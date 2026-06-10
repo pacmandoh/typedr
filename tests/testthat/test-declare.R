@@ -228,6 +228,42 @@ test_that("declare supports missing initial value", {
   expect_equal(z, 1, ignore_attr = TRUE)
 })
 
+test_that("declare unset inform reports assertion and name", {
+  inform <- rlang::catch_cnd(
+    .typedr_inform_declare_unset("inform_z", quote(Double()))
+  )
+
+  expect_s3_class(inform, "rlang_message")
+  expect_match(conditionMessage(inform), "Declared", fixed = TRUE)
+  expect_match(conditionMessage(inform), "`inform_z`", fixed = TRUE)
+  expect_match(conditionMessage(inform), "Double()", fixed = TRUE)
+  expect_match(conditionMessage(inform), "unset", fixed = TRUE)
+})
+
+test_that("declare skips unset inform outside the global environment", {
+  calls <- 0L
+  with_mocked_bindings(
+    {
+      f <- function() {
+        declare("in_func", Double())
+        in_func <- 1
+        in_func
+      }
+      expect_equal(f(), 1, ignore_attr = TRUE)
+    },
+    .typedr_inform_declare_unset = function(x, assertion_quoted) {
+      calls <<- calls + 1L
+    },
+    .package = "typedr"
+  )
+  expect_equal(calls, 0L)
+})
+
+test_that("declare does not inform when an initial value is supplied", {
+  expect_null(rlang::catch_cnd(declare("with_value", Double(), value = 1)))
+  expect_equal(with_value, 1, ignore_attr = TRUE)
+})
+
 test_that("declare supports assertion factories", {
   declare("factory_x", Double, value = 1)
 

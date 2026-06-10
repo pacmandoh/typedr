@@ -454,13 +454,14 @@ typedr_arg_is_missing <- function(arg, env) {
 #' @param const Whether to declare `x` as a constant.
 #'
 #' @export
-#' @importFrom rlang caller_env enexpr is_null expr eval_bare call2 try_fetch
+#' @importFrom rlang caller_env enexpr is_null is_missing expr eval_bare call2 try_fetch
 #' @importFrom rlang env env_bind_active env_has env_unbind
-#' @importFrom cli cli_abort
+#' @importFrom cli cli_abort cli_inform
 declare <- function(x, assertion = NULL, value, const = FALSE) {
   call <- caller_env()
   f_env <- env(parent = call)
   assertion_expr <- enexpr(assertion)
+  value_missing <- is_missing(value)
 
   if (!is_null(assertion)) {
     assertion_quoted <- assertion_expr
@@ -475,7 +476,7 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
   }
 
   ## is value provided ?
-  if (!is_missing(value)) {
+  if (!value_missing) {
     val <- try_fetch(assertion(value), error = identity)
     if (inherits(val, "error")) {
       val$call <- .typedr_error_call(assertion_expr)
@@ -560,6 +561,10 @@ declare <- function(x, assertion = NULL, value, const = FALSE) {
     env_unbind(call, x, inherit = FALSE)
   }
   env_bind_active(call, !!x := f)
+
+  if (value_missing && interactive() && identical(call, globalenv())) {
+    .typedr_inform_declare_unset(x, assertion_quoted)
+  }
 
   return(invisible(.typedr_unwrap(value))) # R/utils.R
 }
