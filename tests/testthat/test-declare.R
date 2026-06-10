@@ -38,6 +38,38 @@ test_that("check_output formats the actual return type only on failure", {
   expect_match(conditionMessage(err), "type mismatch", fixed = TRUE)
 })
 
+test_that("check_output returns the identical value on success", {
+  env_value <- environment()
+  expect_identical(check_output(env_value, Environment()), env_value)
+
+  list_value <- list(x = 1:3)
+  expect_identical(check_output(list_value, List()), list_value)
+})
+
+test_that("check_output failure preserves full diagnostic text", {
+  err <- rlang::catch_cnd(
+    check_output(2L, Double(), .assertion_expr = quote(Double()))
+  )
+  lines <- strsplit(conditionMessage(err), "\n", fixed = TRUE)[[1]]
+
+  expect_identical(err$parent$call, quote(Double()))
+  expect_s3_class(err$parent, "typedr_type_mismatch")
+  expect_length(lines, 5L)
+  expect_equal(lines[[1]], "Return value does not satisfy the required <Type()>.")
+  expect_match(
+    lines[[2]],
+    "Expected <Double()> return value, got <Integer()>.",
+    fixed = TRUE
+  )
+  expect_equal(lines[[3]], "Caused by error in `Double()`:")
+  expect_equal(lines[[4]], "! type mismatch")
+  expect_match(
+    lines[[5]],
+    "`typeof(value)`: \"integer\", `expected`: \"double\"",
+    fixed = TRUE
+  )
+})
+
 test_that("check_arg works", {
   x <- 1
   y <- 2
