@@ -83,7 +83,13 @@ check_output <- function(.output, .assertion, ..., .assertion_expr = NULL) {
 #' @importFrom rlang caller_env enexpr enexprs is_missing as_name as_label
 #' @importFrom rlang call_name caller_call expr eval_bare call2 try_fetch
 #' @importFrom cli cli_abort
-check_arg <- function(.arg, .assertion, ..., .bind = FALSE, .assertion_expr = NULL) {
+check_arg <- function(
+  .arg,
+  .assertion,
+  ...,
+  .bind = FALSE,
+  .assertion_expr = NULL
+) {
   call <- caller_env()
   arg_expr <- enexpr(.arg)
   if (is_null(.assertion_expr)) {
