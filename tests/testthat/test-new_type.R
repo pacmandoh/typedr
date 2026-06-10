@@ -242,6 +242,27 @@ test_that("named dots add value-derived checks", {
   expect_error(assertion(NA), class = "typedr_custom_assertion_error")
 })
 
+test_that("error_call handles multi-line deparsed assertions", {
+  assertion <- quote(
+    Character(
+      1,
+      ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")
+    )
+  )
+  expect_identical(.typedr_error_call(assertion), call2("Character"))
+
+  err <- rlang::catch_cnd(
+    Character(
+      1,
+      ... = "`value` is not a fruit!" ~ . %in% c("apple", "pear", "cherry")
+    ) ? x <- "potatoe"
+  )
+  expect_s3_class(err, "typedr_initial_error")
+  expect_identical(err$parent$call, quote(Character()))
+  expect_match(conditionMessage(err), "Invalid initial value", fixed = TRUE)
+  expect_match(conditionMessage(err), "not a fruit", fixed = TRUE)
+})
+
 test_that("formula dots add custom checks with and without custom messages", {
   Fruit <- as_assertion_factory(function(value) {
     if (!is_character(value)) {

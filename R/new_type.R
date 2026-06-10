@@ -47,9 +47,21 @@
   if (is_null(x) || !is_call(x)) {
     return(x)
   }
-  if (nchar(expr_deparse(x), type = "width") <= max_chars) {
+  label <- paste(expr_deparse(x), collapse = " ")
+  label <- gsub("[[:space:]]+", " ", label)
+  if (nchar(label, type = "width") <= max_chars) {
     return(x)
   }
+
+  if (is_call(x, c("|", "&"))) {
+    return(call2("Type"))
+  }
+
+  nm <- call_name(x)
+  if (!is_null(nm) && !is.na(nm) && nzchar(nm)) {
+    return(call2(nm))
+  }
+
   call2("Type")
 }
 
@@ -96,7 +108,9 @@
 #' typedr error message instead of being repeated as a parent error. Generated
 #' wrapper names are replaced with the public assertion-factory call in typedr
 #' errors, and long predicate expressions or values are shortened in diagnostic
-#' bullets. Exceptionally long assertion calls use the neutral `Type()` label.
+#' bullets. Exceptionally long union or intersection calls use the neutral
+#' `Type()` label; long single-factory calls fall back to the factory name
+#' (for example `Character()`).
 #'
 #' @param f A function whose first argument is the value to check. Additional
 #'   arguments become arguments of the assertion factory.
