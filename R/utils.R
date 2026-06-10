@@ -147,6 +147,31 @@ type_printer <- function(type, printer) {
   x
 }
 
+.typedr_peel_value <- function(x) {
+  if (!inherits(x, "typedr_value")) {
+    return(x)
+  }
+  if (.typedr_is_wrapped_null(x)) {
+    return(NULL)
+  }
+  attr(x, "typedr_name") <- NULL
+  attr(x, "typedr_assertion") <- NULL
+  attr(x, "typedr_const") <- NULL
+  class(x) <- setdiff(class(x), "typedr_value")
+  bare <- unclass(x)
+  if (identical(x, structure(bare, class = class(x)))) {
+    return(bare)
+  }
+  x
+}
+
+.typedr_inform_declare_unset <- function(x, assertion_quoted) {
+  assertion_label <- .typedr_assertion_diagnostic_label(assertion_quoted)
+  cli_inform(c(
+    "i" = "Declared {.field `{x}`} as {.cls {assertion_label}} ({.emph unset})."
+  ))
+}
+
 .apply_typedr_attrs <- function(val, name, assertion_call, const) {
   if (is_null(val)) {
     # R deprecates `structure(NULL, *)`; keep metadata on an empty carrier instead.
