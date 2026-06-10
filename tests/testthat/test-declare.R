@@ -242,19 +242,30 @@ test_that("declare supports missing initial value", {
 })
 
 test_that("declare unset inform reports assertion and name", {
-  inform <- with_mocked_bindings(
-    rlang::catch_cnd(
+  captured <- NULL
+  with_mocked_bindings(
+    {
       .typedr_inform_declare_unset("inform_z", quote(Double()), globalenv(), TRUE)
-    ),
-    interactive = function() TRUE,
-    .package = "base"
+    },
+    .typedr_is_interactive = function() TRUE,
+    cli_inform = function(message, ...) {
+      captured <<- message
+    },
+    .package = "typedr"
   )
 
-  expect_s3_class(inform, "rlang_message")
-  expect_match(conditionMessage(inform), "Declared", fixed = TRUE)
-  expect_match(conditionMessage(inform), "`inform_z`", fixed = TRUE)
-  expect_match(conditionMessage(inform), "Double()", fixed = TRUE)
-  expect_match(conditionMessage(inform), "unset", fixed = TRUE)
+  expect_length(captured, 1L)
+  text <- cli::format_inline(
+    captured,
+    .envir = list(
+      x = "inform_z",
+      assertion_label = .typedr_assertion_diagnostic_label(quote(Double()))
+    )
+  )
+  expect_match(text, "Declared", fixed = TRUE)
+  expect_match(text, "`inform_z`", fixed = TRUE)
+  expect_match(text, "Double()", fixed = TRUE)
+  expect_match(text, "unset", fixed = TRUE)
 })
 
 test_that("declare unset inform skips when guards fail", {
@@ -273,8 +284,8 @@ test_that("declare unset inform skips when guards fail", {
           TRUE
         )
       ),
-      interactive = function() FALSE,
-      .package = "base"
+      .typedr_is_interactive = function() FALSE,
+      .package = "typedr"
     )
   )
   expect_null(
@@ -299,8 +310,8 @@ test_that("declare skips unset inform outside the global environment", {
       }
       f()
     },
-    interactive = function() TRUE,
-    .package = "base"
+    .typedr_is_interactive = function() TRUE,
+    .package = "typedr"
   )
   expect_null(out$inform)
   expect_equal(out$value, 1, ignore_attr = TRUE)
