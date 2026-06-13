@@ -93,3 +93,76 @@ test_that(".typedr_mask_lines collapses repeated masks from same package", {
   expect_length(lines, 1L)
   expect_match(lines[[1L]], "3 objects from base", fixed = TRUE)
 })
+
+test_that(".typedr_mask_lines handles empty input", {
+  expect_length(typedr:::.typedr_mask_lines(list()), 0L)
+})
+
+test_that("typedr_startup_message returns header only without masks", {
+  msg <- with_mocked_bindings(
+    typedr:::typedr_startup_message(),
+    .typedr_detect_masks = function() {
+      list()
+    },
+    .package = "typedr"
+  )
+  expect_equal(length(strsplit(msg, "\n", fixed = TRUE)[[1L]]), 1L)
+})
+
+test_that("typedr_startup_message omits masks with conflicted attached", {
+  msg <- with_mocked_bindings(
+    typedr:::typedr_startup_message(),
+    .typedr_is_attached = function(x) {
+      identical(x, "conflicted")
+    },
+    .package = "typedr"
+  )
+  expect_equal(length(strsplit(msg, "\n", fixed = TRUE)[[1L]]), 1L)
+})
+
+test_that(".typedr_confirm_conflict returns NULL for non-conflicts", {
+  expect_null(typedr:::.typedr_confirm_conflict("package:typedr", "declare"))
+
+  f <- function() 1
+  attach(new.env(parent = emptyenv()), name = "package:typedr_covr_a")
+  attach(new.env(parent = emptyenv()), name = "package:typedr_covr_b")
+  on.exit({
+    detach("package:typedr_covr_a", character.only = TRUE)
+    detach("package:typedr_covr_b", character.only = TRUE)
+  }, add = TRUE)
+  assign("f", f, envir = as.environment("package:typedr_covr_a"))
+  assign("f", f, envir = as.environment("package:typedr_covr_b"))
+  expect_null(typedr:::.typedr_confirm_conflict(
+    c("package:typedr_covr_a", "package:typedr_covr_b"),
+    "f"
+  ))
+})
+
+test_that(".typedr_invert handles empty input", {
+  expect_equal(typedr:::.typedr_invert(list()), list())
+})
+
+test_that("typedr_inform_startup informs startup message", {
+  old <- getOption("typedr.quiet")
+  on.exit(options(typedr.quiet = old), add = TRUE)
+  options(typedr.quiet = FALSE)
+
+  expect_message(typedr:::.typedr_inform_startup(), "typedr")
+})
+
+test_that("typedr_inform_startup skips empty message", {
+  old <- getOption("typedr.quiet")
+  on.exit(options(typedr.quiet = old), add = TRUE)
+  options(typedr.quiet = FALSE)
+
+  expect_silent(with_mocked_bindings(
+    typedr:::.typedr_inform_startup(),
+    typedr_startup_message = function() "",
+    .package = "typedr"
+  ))
+})
+
+test_that("onAttach and onDetach run in test environment", {
+  expect_invisible(typedr:::.onAttach(libname = NULL, pkgname = "typedr"))
+  expect_invisible(typedr:::.onDetach(libname = NULL, pkgname = "typedr"))
+})

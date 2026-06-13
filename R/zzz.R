@@ -15,6 +15,7 @@
 }
 
 .typedr_assign_pkgload_shim <- function(value) {
+  # nocov start
   if (!isNamespaceLoaded("pkgload")) {
     return(invisible())
   }
@@ -31,6 +32,7 @@
 
   assignInNamespace("shim_question", value, "pkgload")
   invisible()
+  # nocov end
 }
 
 .typedr_on_attach_pkgload <- function() {
