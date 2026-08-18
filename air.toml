@@ -1,5 +1,6 @@
 [format]
 exclude = [
+  "R/import-standalone-*.R",
   "README.Rmd",
   "vignettes/*.Rmd",
   "tests/testthat/test-47.R",

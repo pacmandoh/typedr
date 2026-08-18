@@ -15,7 +15,7 @@ Roxygen: list(markdown = TRUE)
 URL: https://github.com/pacmandoh/typedr, https://pacmandoh.github.io/typedr/
 BugReports: https://github.com/pacmandoh/typedr/issues
 Imports: 
-    rlang (>= 1.1.6),
+    rlang (>= 1.2.0),
     cli (>= 3.6.5)
 Suggests: 
     testthat (>= 3.2.3),
@@ -31,8 +31,9 @@ Collate:
     'attach.R'
     'cache-assertion.R'
     'check-fast.R'
-    'declare.R'
+    'import-standalone-obj-type.R'
     'import-standalone-types-check.R'
+    'declare.R'
     'new_type.R'
     'native_types.R'
     'print-controls.R'
