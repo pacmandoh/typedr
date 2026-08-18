@@ -169,11 +169,11 @@ Fruit() ? x <- 1L
 Here's a case where starting from `Any()` makes sense :
 
 ```{r}
-Ggplot <- function() {
-  Any(... = "Expected a ggplot object" ~ ggplot2::is.ggplot(value))
+Dateish <- function() {
+  Any(... = "Expected a Date" ~ inherits(value, "Date"))
 }
 
-Ggplot() ? x <- 1
+Dateish() ? x <- 1
 ```
 
 
@@ -237,25 +237,27 @@ For long predicates and values, the diagnostic preview is shortened; this does
 not alter the value passed to the check or the structured condition classes.
 
 ```{r, error = TRUE}
-check_is_ggplot <- function(x) {
-  if(!ggplot2::is.ggplot(x)) {
+check_is_date <- function(x) {
+  if (!inherits(x, "Date")) {
     msg <- "Class mismatch"
-    info1 <- "Expected a ggplot object"
+    info1 <- "Expected a Date"
     info2 <- sprintf("Got an object of class <%s>", paste(class(x), collapse = "/"))
-   rlang::abort(
-     c(msg, i = info1, x = info2)
-   )
+    rlang::abort(
+      c(msg, i = info1, x = info2)
+    )
   }
 }
-Ggplot <- as_assertion_factory(check_is_ggplot)
+Dateish <- as_assertion_factory(check_is_date)
 
-Ggplot() ? x <- 1
+Dateish() ? x <- 1
 ```
 
 Another example, to impose a data type based on a prototype:
 
 ```{r}
-check_cars <- function(x) vctrs::vec_assert(x, cars)
+check_cars <- function(x) {
+  stopifnot(is.data.frame(x), identical(names(x), names(cars)))
+}
 Cars <- as_assertion_factory(check_cars)
 Cars() ? x <- iris
 ```
@@ -263,9 +265,11 @@ Cars() ? x <- iris
 Or if we want to be more general:
 
 ```{r}
-check_valid_ptype <- function(x, ptype) vctrs::vec_assert(x, ptype)
+check_valid_ptype <- function(x, ptype) {
+  stopifnot(identical(typeof(x), typeof(ptype)))
+}
 Ptype <- as_assertion_factory(check_valid_ptype)
-Ptype(cars) ? x <- iris
+Ptype(1L) ? x <- 1
 ```
 
 `as_assertion_factory()`

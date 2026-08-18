@@ -19,14 +19,11 @@ Imports:
     cli (>= 3.6.5)
 Suggests: 
     testthat (>= 3.2.3),
-    covr,
     knitr,
     rmarkdown,
     desc,
     usethis,
-    prettycode,
-    ggplot2,
-    vctrs
+    prettycode
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Collate: 
